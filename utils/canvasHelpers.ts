@@ -101,7 +101,7 @@ export const createCroppedSelection = async (
 
   ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
 
-  // Ghostly Red Mask (Lower opacity so AI can see the object BETTER underneath)
+  // Ghostly Red Mask (Low opacity to let AI see edges)
   ctx.fillStyle = 'rgba(255, 0, 0, 0.35)';
   ctx.beginPath();
   if (lassoPoints.length > 0) {
@@ -122,8 +122,8 @@ export const createCroppedSelection = async (
 };
 
 /**
- * Enhanced Alpha Mask Application.
- * Includes a "Thresholding" step to prevent the AI's "messy" output from creating halos.
+ * Enhanced Alpha Mask Application with Erosion.
+ * Physically shrinks the mask by 1-2 pixels to remove white edge halos.
  */
 export const applyMaskToImage = async (originalSrc: string, maskSrc: string): Promise<string> => {
   const [original, mask] = await Promise.all([
@@ -131,46 +131,96 @@ export const applyMaskToImage = async (originalSrc: string, maskSrc: string): Pr
     loadImage(maskSrc)
   ]);
   
+  const width = original.width;
+  const height = original.height;
+
   const canvas = document.createElement('canvas');
-  canvas.width = original.width;
-  canvas.height = original.height;
+  canvas.width = width;
+  canvas.height = height;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error("Context failed");
   
+  // 1. Prepare Mask Canvas
   const maskCanvas = document.createElement('canvas');
-  maskCanvas.width = original.width;
-  maskCanvas.height = original.height;
+  maskCanvas.width = width;
+  maskCanvas.height = height;
   const maskCtx = maskCanvas.getContext('2d');
   if (!maskCtx) throw new Error("Mask Context failed");
 
-  maskCtx.drawImage(mask, 0, 0, original.width, original.height);
+  // Draw raw mask (AI returns White Object / Black Background, fully opaque)
+  maskCtx.drawImage(mask, 0, 0, width, height);
   
-  const maskData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
-  const data = maskData.data;
-  
-  /**
-   * MASK CLEANING:
-   * The AI sometimes returns a gray "halo" around the white object.
-   * We apply a threshold: if it's not bright enough, it's transparent.
-   */
+  const maskImageData = maskCtx.getImageData(0, 0, width, height);
+  const data = maskImageData.data;
+
+  // 2. CONVERT BLACK TO TRANSPARENT
+  // Crucial Step: The AI mask is opaque. We must map Black -> Transparent Alpha.
+  const threshold = 100; // Brightness threshold
   for (let i = 0; i < data.length; i += 4) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-      const brightness = (r + g + b) / 3;
-      
-      // THRESHOLD: Any pixel with less than 50% brightness becomes fully transparent.
-      // This kills the "messy selection" artifacts.
-      if (brightness < 128) {
-          data[i + 3] = 0;
+      const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+      if (avg < threshold) {
+          data[i + 3] = 0; // Transparent
       } else {
-          // Map brightness to alpha for soft anti-aliasing on the edges
-          data[i + 3] = brightness; 
+          data[i + 3] = 255; // Fully Opaque
+          // Enforce pure white for cleaner processing
+          data[i] = 255;
+          data[i + 1] = 255;
+          data[i + 2] = 255;
       }
   }
-  maskCtx.putImageData(maskData, 0, 0);
 
-  // 1. Draw the clean object
+  // 3. MASK EROSION (Shrink the opaque area)
+  // This removes the edge pixels to kill halos.
+  const iterations = 2; 
+
+  for (let k = 0; k < iterations; k++) {
+    const sourceData = new Uint8ClampedArray(data); // Snapshot of current state
+    
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = (y * width + x) * 4;
+        
+        // If current pixel is Opaque
+        if (sourceData[idx + 3] > 0) {
+          let shouldErode = false;
+          
+          // Check neighbors. If any neighbor is transparent, this pixel is on the edge -> erode it.
+          // Top
+          if (y > 0 && sourceData[idx - width * 4 + 3] === 0) shouldErode = true;
+          // Bottom
+          else if (y < height - 1 && sourceData[idx + width * 4 + 3] === 0) shouldErode = true;
+          // Left
+          else if (x > 0 && sourceData[idx - 4 + 3] === 0) shouldErode = true;
+          // Right
+          else if (x < width - 1 && sourceData[idx + 4 + 3] === 0) shouldErode = true;
+
+          if (shouldErode) {
+            data[idx + 3] = 0; // Set to transparent
+          }
+        }
+      }
+    }
+  }
+
+  maskCtx.putImageData(maskImageData, 0, 0);
+
+  // 4. Slight Blur to soften the jagged eroded edge
+  const smoothCanvas = document.createElement('canvas');
+  smoothCanvas.width = width;
+  smoothCanvas.height = height;
+  const smoothCtx = smoothCanvas.getContext('2d');
+  
+  if (smoothCtx) {
+    // Apply a tiny blur to the alpha channel to make the cutout look natural, not pixelated
+    smoothCtx.filter = 'blur(1.5px)'; 
+    smoothCtx.drawImage(maskCanvas, 0, 0);
+    
+    // Clear the mask context and draw the smoothed version back
+    maskCtx.clearRect(0, 0, width, height);
+    maskCtx.drawImage(smoothCanvas, 0, 0);
+  }
+
+  // 5. Composite
   ctx.drawImage(original, 0, 0);
   ctx.globalCompositeOperation = 'destination-in';
   ctx.drawImage(maskCanvas, 0, 0);

@@ -50,7 +50,11 @@ export const detachObjectWithGemini = async (
     let sceneInfo = { label: "object", edges: "sharp", context: "background" };
     try {
         const text = reasoningResponse.text?.replace(/```json|```/g, '').trim() || "{}";
-        sceneInfo = JSON.parse(text);
+        const start = text.indexOf('{');
+        const end = text.lastIndexOf('}');
+        if (start !== -1 && end !== -1) {
+            sceneInfo = JSON.parse(text.substring(start, end + 1));
+        }
     } catch (e) {
         console.warn("Reasoning parse failed, using fallback", e);
     }
@@ -63,19 +67,20 @@ export const detachObjectWithGemini = async (
       contents: {
         parts: [
           {
-            text: `CRITICAL TASK: PIXEL-PERFECT SEGMENTATION.
+            text: `CRITICAL TASK: TIGHT INNER MASK GENERATION.
             TARGET: The ${sceneInfo.label}.
             VISUAL PROPERTIES: ${sceneInfo.edges}.
             
             STRICT RULES:
             - The RED HIGHLIGHT in the image is a ROUGH, MESSY HINT. Do NOT follow its shape.
-            - You MUST perform 'Semantic Snapping': Find the actual physical edges of the ${sceneInfo.label} and snap the mask to them.
-            - If the red highlight is larger than the object, CONTRACT the mask to the object.
-            - If the red highlight missed part of the object, EXPAND the mask to include the whole ${sceneInfo.label}.
-            - DO NOT include any background or shadows in the WHITE area unless they are part of the ${sceneInfo.label}.
+            - You MUST perform 'Semantic Snapping': Find the actual physical edges of the ${sceneInfo.label}.
+            - AGGRESSIVE UNDERCUT: To avoid white halos, the mask MUST be slightly SMALLER (inset by 2-3px) than the object. 
+            - NO BACKGROUND BLEED: If the object is on a white background, cut INTO the object slightly to ensure NO white pixels remain.
+            - NO SHADOWS: Exclude cast shadows.
+            - DO NOT include any background pixels.
             
             OUTPUT: A pure binary Black & White mask. 
-            WHITE (#FFFFFF) = The ${sceneInfo.label} ONLY. 
+            WHITE (#FFFFFF) = The ${sceneInfo.label} (contracted). 
             BLACK (#000000) = Everything else.`
           },
           {
@@ -133,7 +138,7 @@ export const detachObjectWithGemini = async (
 
     let objectBase64 = null;
     if (maskBase64) {
-        // High-res local processing
+        // High-res local processing with Mask Erosion
         objectBase64 = await applyMaskToImage(imageBase64, maskBase64);
     }
 
