@@ -1,10 +1,8 @@
 export const GEMINI_IMAGE_MODEL = 'gemini-3-pro-image-preview';
 export const GEMINI_REASONING_MODEL = 'gemini-3-flash-preview';
 
-export const CANVAS_WIDTH = 3840; // Virtual canvas size
-export const CANVAS_HEIGHT = 2160;
-
-export const DEFAULT_LAYER_WIDTH = 400;
+// Default width for a new node added to the canvas
+export const DEFAULT_NODE_WIDTH = 400;
 
 export const PLACEHOLDER_IMAGES = [
   'https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=800&auto=format&fit=crop',

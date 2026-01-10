@@ -7,14 +7,37 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend: {
             colors: {
-              background: '#0f0f12',
-              surface: '#18181b',
-              surfaceHighlight: '#27272a',
-              primary: '#6366f1',
-              accent: '#818cf8',
+              // Custom background variables
+              bk: {
+                20: 'rgb(var(--bk-20))',
+                30: 'rgb(var(--bk-30))',
+                40: 'rgb(var(--bk-40))',
+                50: 'rgb(var(--bk-50))',
+                60: 'rgb(var(--bk-60))',
+                70: 'rgb(var(--bk-70))',
+              },
+              // Custom border variables
+              bd: {
+                50: 'rgb(var(--bd-50))',
+                60: 'rgb(var(--bd-60))',
+              },
+              // Custom text variables
+              fg: {
+                30: 'rgb(var(--fg-30))',
+                40: 'rgb(var(--fg-40))',
+                50: 'rgb(var(--fg-50))',
+                60: 'rgb(var(--fg-60))',
+                70: 'rgb(var(--fg-70))',
+              },
+              // Custom accent variables
+              ac: {
+                '01': 'rgb(var(--ac-01))',
+                '02': 'rgb(var(--ac-02))',
+              },
             },
             fontFamily: {
               sans: ['Inter', 'sans-serif'],
@@ -24,25 +47,60 @@
       };
     </script>
     <style>
+      :root {
+        /* Default Dark Theme based on your variables */
+        --bk-20: 81, 81, 81;
+        --bk-40: 55, 55, 55;
+        --bk-50: 42, 42, 42;
+        --bk-60: 30, 30, 30;
+        --bk-70: 18, 18, 18;
+        --bd-50: 60, 60, 60;
+        --bd-60: 75, 75, 75;
+        --fg-30: 255, 255, 255;
+        --fg-40: 249, 249, 249;
+        --fg-50: 228, 228, 228;
+        --fg-60: 156, 156, 156;
+        --fg-70: 140, 140, 140;
+        --ac-01: 36, 96, 183;
+        --ac-02: 70, 125, 205;
+      }
+
+      .light {
+        --bk-30: 212, 212, 212;
+        --bk-40: 224, 224, 224;
+        --bk-50: 242, 242, 242;
+        --bk-60: 249, 249, 249;
+        --bk-70: 255, 255, 255;
+        --bd-50: 216, 216, 216;
+        --bd-60: 230, 230, 230;
+        --fg-30: 24, 24, 24;
+        --fg-40: 31, 31, 31;
+        --fg-50: 49, 49, 49;
+        --fg-60: 85, 85, 85;
+        --fg-70: 114, 114, 114;
+        --ac-01: 36, 96, 183;
+        --ac-02: 70, 125, 205;
+      }
+
       body {
-        background-color: #0f0f12;
-        color: #e4e4e7;
+        background-color: rgb(var(--bk-70));
+        color: rgb(var(--fg-50));
         overflow: hidden;
       }
-      /* Custom scrollbar */
+      
       ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        width: 6px;
+        height: 6px;
       }
       ::-webkit-scrollbar-track {
-        background: #18181b; 
+        background: rgb(var(--bk-70)); 
       }
       ::-webkit-scrollbar-thumb {
-        background: #3f3f46; 
-        border-radius: 4px;
+        background: rgb(var(--bd-50)); 
+        border-radius: 10px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #52525b; 
+        background: rgb(var(--bk-20)); 
       }
     </style>
 <script type="importmap">
@@ -57,7 +115,7 @@
 }
 </script>
 </head>
-  <body>
+  <body class="dark">
     <div id="root"></div>
   </body>
 </html>
