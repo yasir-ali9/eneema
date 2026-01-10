@@ -11,13 +11,17 @@ interface CentralAreaProps {
   setSelectedNodeIds: (ids: string[]) => void;
   lassoPath: Point[];
   setLassoPath: (path: Point[]) => void;
-  onUpdateNode: (node: EditorNode) => void;
   onUpdateNodes: (nodes: EditorNode[]) => void;
+  onPushHistory: (snapshot: EditorNode[]) => void;
   onDeleteNode: (id: string) => void;
   isProcessing: boolean;
   onDetach: () => void;
   setCanvasRef: (ref: HTMLCanvasElement | null) => void;
   showGrid: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 /**
@@ -34,8 +38,8 @@ const CentralArea: React.FC<CentralAreaProps> = (props) => {
         selectedNodeIds={props.selectedNodeIds} 
         lassoPath={props.lassoPath} 
         onSetLassoPath={props.setLassoPath} 
-        onUpdateNode={props.onUpdateNode} 
         onUpdateNodes={props.onUpdateNodes}
+        onPushHistory={props.onPushHistory}
         onDeleteNode={props.onDeleteNode}
         onSelectNode={id => { 
           props.setSelectedNodeIds(id ? [id] : []); 
@@ -56,6 +60,10 @@ const CentralArea: React.FC<CentralAreaProps> = (props) => {
         isProcessing={props.isProcessing} 
         hasSelection={props.lassoPath.length > 2} 
         hasActiveNode={props.selectedNodeIds.length > 0} 
+        onUndo={props.onUndo}
+        onRedo={props.onRedo}
+        canUndo={props.canUndo}
+        canRedo={props.canRedo}
       />
     </div>
   );

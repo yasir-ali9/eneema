@@ -17,8 +17,8 @@ interface CanvasBoardProps {
   selectedNodeIds: string[];
   lassoPath: Point[];
   onSetLassoPath: (path: Point[]) => void;
-  onUpdateNode: (node: EditorNode) => void;
   onUpdateNodes: (nodes: EditorNode[]) => void;
+  onPushHistory: (snapshot: EditorNode[]) => void;
   onSelectNode: (id: string | null) => void;
   onSelectNodes: (ids: string[]) => void;
   onDeleteNode: (id: string) => void;
@@ -32,7 +32,7 @@ interface CanvasBoardProps {
  */
 const CanvasBoard: React.FC<CanvasBoardProps> = ({ 
   nodes, toolMode, setToolMode, selectedNodeIds, lassoPath, 
-  onSetLassoPath, onUpdateNode, onUpdateNodes, onSelectNode, onSelectNodes, onDeleteNode, setCanvasRef, showGrid 
+  onSetLassoPath, onUpdateNodes, onPushHistory, onSelectNode, onSelectNodes, onDeleteNode, setCanvasRef, showGrid 
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -42,6 +42,9 @@ const CanvasBoard: React.FC<CanvasBoardProps> = ({
   const [lastMousePos, setLastMousePos] = useState<Point>({ x: 0, y: 0 });
   const [activeHandle, setActiveHandle] = useState<HandleType | null>(null);
   const [imageCache, setImageCache] = useState<Record<string, HTMLImageElement>>({});
+
+  // History optimization: Snapshots the nodes before an interaction starts
+  const initialNodesRef = useRef<EditorNode[] | null>(null);
 
   // Marquee state
   const [marquee, setMarquee] = useState<{ start: Point, end: Point } | null>(null);
@@ -102,17 +105,29 @@ const CanvasBoard: React.FC<CanvasBoardProps> = ({
   // Global mouse up safety and marquee finalization
   useEffect(() => {
     const onGlobalMouseUp = () => {
+      // If a drag/resize action finished, commit the initial snapshot to history
+      if ((currentAction === EditorAction.DRAGGING || currentAction === EditorAction.RESIZING) && initialNodesRef.current) {
+        // Only commit if the state actually changed to avoid empty undo steps
+        const currentNodesStr = JSON.stringify(nodes);
+        const initialNodesStr = JSON.stringify(initialNodesRef.current);
+        if (currentNodesStr !== initialNodesStr) {
+          onPushHistory(initialNodesRef.current);
+        }
+      }
+
       if (currentAction === EditorAction.MARQUEE && marquee) {
         const selectedIds = findNodesInMarquee(marquee.start, marquee.end, nodes);
         onSelectNodes(selectedIds);
       }
+      
       setCurrentAction(EditorAction.IDLE); 
       setActiveHandle(null);
       setMarquee(null);
+      initialNodesRef.current = null;
     };
     window.addEventListener('mouseup', onGlobalMouseUp);
     return () => window.removeEventListener('mouseup', onGlobalMouseUp);
-  }, [currentAction, marquee, nodes, onSelectNodes]);
+  }, [currentAction, marquee, nodes, onSelectNodes, onPushHistory]);
 
   const getMouseInfo = (e: React.MouseEvent) => {
     const rect = canvasRef.current!.getBoundingClientRect();
@@ -124,6 +139,10 @@ const CanvasBoard: React.FC<CanvasBoardProps> = ({
   const handleMouseDown = (e: React.MouseEvent) => {
     const { pos, worldPos } = getMouseInfo(e);
     setLastMousePos(pos);
+    
+    // Capture snapshot for history before starting any action
+    initialNodesRef.current = [...nodes];
+    
     const action = handleMouseDownAction(worldPos, toolMode, nodes, selectedNodeIds, activeHandle, onSelectNode, onSetLassoPath);
     if (action === EditorAction.MARQUEE) {
       setMarquee({ start: worldPos, end: worldPos });

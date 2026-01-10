@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import LeftPanel from '../left-panel/index.tsx';
 import RightPanel from '../right-panel/index.tsx';
 import CentralArea from '../central/index.tsx';
@@ -6,24 +6,24 @@ import { EditorNode, ToolMode, Point } from './types.ts';
 import { DEFAULT_NODE_WIDTH } from './constants.ts';
 import { detachObjectWithGemini } from '../services/gemini.service.ts';
 import { loadImage, createCroppedSelection } from '../central/canvas/helpers/canvas.utils.ts';
+import { useEditorHistory } from './hooks/use-editor-history.ts';
 
 /**
  * EditorRoot Component
  * The central brain orchestrating canvas nodes, project state, and AI services.
  */
 const EditorRoot: React.FC = () => {
-  const [nodes, setNodes] = useState<EditorNode[]>([]);
+  // Enhanced history management
+  const { nodes, setNodes, pushHistory, undo, redo, canUndo, canRedo } = useEditorHistory([]);
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [toolMode, setToolMode] = useState<ToolMode>(ToolMode.SELECT);
   const [lassoPath, setLassoPath] = useState<Point[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  // Setting the default project name to 'Gemini 3 Project' as requested
   const [projectName, setProjectName] = useState("Gemini 3 Project");
-  // State for pixel grid visibility - Defaulting to false as requested
   const [showGrid, setShowGrid] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Function to create a new image node from source
+  // Adds a node and commits current state to history beforehand
   const addNode = async (src: string) => {
     try {
       const img = await loadImage(src);
@@ -37,7 +37,9 @@ const EditorRoot: React.FC = () => {
           rotation: 0, opacity: 1, 
           name: `Node ${nodes.length + 1}` 
       };
-      setNodes(prev => [...prev, node]); 
+      // Commit state before modification
+      pushHistory(nodes);
+      setNodes([...nodes, node]); 
       setSelectedNodeIds([node.id]); 
       setToolMode(ToolMode.SELECT);
     } catch (error) {
@@ -45,19 +47,21 @@ const EditorRoot: React.FC = () => {
     }
   };
 
-  // Bulk update multiple nodes in one state update
+  // Transiently updates nodes (used for live dragging/resizing)
   const handleUpdateNodes = (updatedNodes: EditorNode[]) => {
-    setNodes(prev => {
-      const next = [...prev];
-      updatedNodes.forEach(un => {
-        const idx = next.findIndex(n => n.id === un.id);
-        if (idx !== -1) next[idx] = un;
-      });
-      return next;
+    const nextNodes = nodes.map(n => {
+      const updated = updatedNodes.find(un => un.id === n.id);
+      return updated ? updated : n;
     });
+    setNodes(nextNodes);
   };
 
-  // Execute the Gemini-powered object detachment pipeline
+  // Records a specific snapshot to history
+  const handlePushHistory = (snapshot: EditorNode[]) => {
+    pushHistory(snapshot);
+  };
+
+  // AI Detach logic with proper history recording
   const handleDetach = async () => {
     if (!selectedNodeIds[0] || lassoPath.length < 3) return;
     setIsProcessing(true);
@@ -76,8 +80,12 @@ const EditorRoot: React.FC = () => {
         const croppedHint = await createCroppedSelection(active.src, localPath, active.width, active.height);
         const result = await detachObjectWithGemini(active.src, hintCanvas.toDataURL(), croppedHint);
 
+        // Commit state before AI modifications
+        pushHistory(nodes);
+
+        let finalNodes = [...nodes];
         if (result.background) {
-            setNodes(prev => prev.map(n => n.id === active.id ? { ...n, src: result.background!, name: `${n.name} (Plate)` } : n));
+            finalNodes = finalNodes.map(n => n.id === active.id ? { ...n, src: result.background!, name: `${n.name} (Plate)` } : n);
         }
         if (result.object) {
             const newNode: EditorNode = { 
@@ -89,9 +97,10 @@ const EditorRoot: React.FC = () => {
                 rotation: active.rotation, opacity: 1, 
                 name: result.label || "Extracted Object" 
             };
-            setNodes(prev => [...prev, newNode]); 
+            finalNodes.push(newNode);
             setSelectedNodeIds([newNode.id]);
         }
+        setNodes(finalNodes);
         setLassoPath([]); setToolMode(ToolMode.SELECT);
     } catch (e) { 
         alert("AI Pipeline error. Selection might be too complex."); 
@@ -100,15 +109,35 @@ const EditorRoot: React.FC = () => {
     }
   };
 
-  // Delete a specific node from state
+  // Deletes node and commits state
   const handleDeleteNode = (id: string) => {
-    setNodes(prev => prev.filter(n => n.id !== id));
+    pushHistory(nodes);
+    setNodes(nodes.filter(n => n.id !== id));
     setSelectedNodeIds(prev => prev.filter(sid => sid !== id));
   };
 
+  // Global hotkeys for Undo/Redo
+  useEffect(() => {
+    const handleUndoRedo = (e: KeyboardEvent) => {
+      const isZ = e.key.toLowerCase() === 'z';
+      const isY = e.key.toLowerCase() === 'y';
+      const isMod = e.ctrlKey || e.metaKey;
+      const isShift = e.shiftKey;
+
+      if (isMod && isZ && !isShift) {
+        e.preventDefault();
+        undo();
+      } else if ((isMod && isZ && isShift) || (isMod && isY)) {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener('keydown', handleUndoRedo);
+    return () => window.removeEventListener('keydown', handleUndoRedo);
+  }, [undo, redo]);
+
   return (
     <div className="flex h-screen w-screen bg-bk-70 text-fg-50 overflow-hidden font-sans select-none">
-      {/* Sidebar for assets, layers, and project settings */}
       <LeftPanel 
         nodes={nodes} 
         selectedNodeIds={selectedNodeIds} 
@@ -120,7 +149,6 @@ const EditorRoot: React.FC = () => {
         showGrid={showGrid}
         onToggleGrid={() => setShowGrid(!showGrid)}
       />
-      {/* Central workspace for canvas and primary tools */}
       <CentralArea 
         nodes={nodes}
         toolMode={toolMode}
@@ -129,15 +157,18 @@ const EditorRoot: React.FC = () => {
         setSelectedNodeIds={setSelectedNodeIds}
         lassoPath={lassoPath}
         setLassoPath={setLassoPath}
-        onUpdateNode={un => handleUpdateNodes([un])}
         onUpdateNodes={handleUpdateNodes}
+        onPushHistory={handlePushHistory}
         onDeleteNode={handleDeleteNode}
         isProcessing={isProcessing}
         onDetach={handleDetach}
         setCanvasRef={r => canvasRef.current = r}
         showGrid={showGrid}
+        onUndo={undo}
+        onRedo={redo}
+        canUndo={canUndo}
+        canRedo={canRedo}
       />
-      {/* Sidebar for fine-tuned property controls */}
       <RightPanel />
     </div>
   );
