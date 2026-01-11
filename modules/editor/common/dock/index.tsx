@@ -1,15 +1,17 @@
 import React from 'react';
 import { ToolMode } from '../../core/types.ts';
-import { MousePointer2, Lasso, Scissors, Hand, Undo2, Redo2 } from 'lucide-react';
+import { MousePointer2, Lasso, Scissors, Hand, Undo2, Redo2, Stamp } from 'lucide-react';
 import { Button } from '../../../../components/button.tsx';
 
 interface DockProps {
   toolMode: ToolMode;
   onSetToolMode: (mode: ToolMode) => void;
   onDetach: () => void;
+  onPlace: () => void;
   isProcessing: boolean;
   hasSelection: boolean;
   hasActiveNode: boolean;
+  canPlace: boolean;
   onUndo: () => void;
   onRedo: () => void;
   canUndo: boolean;
@@ -21,8 +23,8 @@ interface DockProps {
  * Updated with History controls and Move, Hand, Lasso tools.
  */
 const Dock: React.FC<DockProps> = ({ 
-  toolMode, onSetToolMode, onDetach, isProcessing, 
-  hasSelection, hasActiveNode, onUndo, onRedo, canUndo, canRedo 
+  toolMode, onSetToolMode, onDetach, onPlace, isProcessing, 
+  hasSelection, hasActiveNode, canPlace, onUndo, onRedo, canUndo, canRedo 
 }) => {
   return (
     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50">
@@ -82,11 +84,23 @@ const Dock: React.FC<DockProps> = ({
         <div className="flex items-center gap-1 pl-1">
           <Button 
             variant="accent" 
+            onClick={onPlace} 
+            disabled={!canPlace || isProcessing}
+            loading={isProcessing && canPlace} // Only show spinner on this button if placing
+            icon={<Stamp size={16} />}
+            className="h-10 px-4 font-semibold tracking-tight"
+            title="Place Object (Smart Blend)"
+          >
+            Place
+          </Button>
+          <div className="w-px h-6 bg-bd-50 mx-1"></div>
+          <Button 
+            variant="accent" 
             onClick={onDetach} 
             disabled={!hasActiveNode || !hasSelection || isProcessing}
-            loading={isProcessing}
+            loading={isProcessing && hasSelection} // Only show spinner on this button if detaching
             icon={<Scissors size={16} />}
-            className="h-10 px-6 font-semibold tracking-tight"
+            className="h-10 px-4 font-semibold tracking-tight"
           >
             Detach
           </Button>

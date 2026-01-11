@@ -17,6 +17,8 @@ interface CentralAreaProps {
   onDuplicateNodes: () => void;
   isProcessing: boolean;
   onDetach: () => void;
+  onPlace: () => void;
+  canPlace: boolean;
   setCanvasRef: (ref: HTMLCanvasElement | null) => void;
   showGrid: boolean;
   onUndo: () => void;
@@ -59,6 +61,8 @@ const CentralArea: React.FC<CentralAreaProps> = (props) => {
         toolMode={props.toolMode} 
         onSetToolMode={props.setToolMode} 
         onDetach={props.onDetach} 
+        onPlace={props.onPlace}
+        canPlace={props.canPlace}
         isProcessing={props.isProcessing} 
         hasSelection={props.lassoPath.length > 2} 
         hasActiveNode={props.selectedNodeIds.length > 0} 
