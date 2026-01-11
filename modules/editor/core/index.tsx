@@ -47,6 +47,61 @@ const EditorRoot: React.FC = () => {
     }
   };
 
+  /**
+   * Clones selected nodes and places them to the right.
+   * If a node already exists in the target spot, it shifts further right.
+   */
+  const duplicateNodes = () => {
+    if (selectedNodeIds.length === 0) return;
+    
+    const newNodesToSelect: string[] = [];
+    const newClonedBatch: EditorNode[] = [];
+    const gap = 20; // Padding between nodes
+
+    // Helper to check if a specific position is occupied by any node
+    const isPositionOccupied = (x: number, y: number, currentBatch: EditorNode[]) => {
+      // Check against current nodes on canvas AND nodes we just created in this batch
+      const allNodes = [...nodes, ...currentBatch];
+      return allNodes.some(n => 
+        Math.abs(n.x - x) < 10 && Math.abs(n.y - y) < 10
+      );
+    };
+    
+    // Sort nodes to maintain relative order if multiple are selected
+    const sortedSelection = nodes
+      .filter(n => selectedNodeIds.includes(n.id))
+      .sort((a, b) => a.x - b.x);
+
+    sortedSelection.forEach(node => {
+      let targetX = node.x + node.width + gap;
+      let targetY = node.y;
+
+      // Smart collision detection: keep moving right until we find an empty "slot"
+      // This mimics the "put even after it" behavior from Figma
+      while (isPositionOccupied(targetX, targetY, newClonedBatch)) {
+        targetX += node.width + gap;
+      }
+
+      const newNode: EditorNode = {
+        ...node,
+        id: crypto.randomUUID(),
+        x: targetX,
+        y: targetY,
+        name: `${node.name} (Copy)`
+      };
+      
+      newClonedBatch.push(newNode);
+      newNodesToSelect.push(newNode.id);
+    });
+
+    if (newClonedBatch.length > 0) {
+      // Record history snapshot before duplicating
+      pushHistory(nodes);
+      setNodes([...nodes, ...newClonedBatch]);
+      setSelectedNodeIds(newNodesToSelect);
+    }
+  };
+
   // Transiently updates nodes (used for live dragging/resizing)
   const handleUpdateNodes = (updatedNodes: EditorNode[]) => {
     const nextNodes = nodes.map(n => {
@@ -116,11 +171,12 @@ const EditorRoot: React.FC = () => {
     setSelectedNodeIds(prev => prev.filter(sid => sid !== id));
   };
 
-  // Global hotkeys for Undo/Redo
+  // Global hotkeys for Undo/Redo and Duplicate
   useEffect(() => {
     const handleUndoRedo = (e: KeyboardEvent) => {
       const isZ = e.key.toLowerCase() === 'z';
       const isY = e.key.toLowerCase() === 'y';
+      const isD = e.key.toLowerCase() === 'd';
       const isMod = e.ctrlKey || e.metaKey;
       const isShift = e.shiftKey;
 
@@ -130,11 +186,15 @@ const EditorRoot: React.FC = () => {
       } else if ((isMod && isZ && isShift) || (isMod && isY)) {
         e.preventDefault();
         redo();
+      } else if (isMod && isD) {
+        // Handle global Duplicate shortcut
+        e.preventDefault();
+        duplicateNodes();
       }
     };
     window.addEventListener('keydown', handleUndoRedo);
     return () => window.removeEventListener('keydown', handleUndoRedo);
-  }, [undo, redo]);
+  }, [undo, redo, nodes, selectedNodeIds]); // Dependencies updated to ensure latest state is captured for duplication
 
   return (
     <div className="flex h-screen w-screen bg-bk-70 text-fg-50 overflow-hidden font-sans select-none">
@@ -160,6 +220,7 @@ const EditorRoot: React.FC = () => {
         onUpdateNodes={handleUpdateNodes}
         onPushHistory={handlePushHistory}
         onDeleteNode={handleDeleteNode}
+        onDuplicateNodes={duplicateNodes}
         isProcessing={isProcessing}
         onDetach={handleDetach}
         setCanvasRef={r => canvasRef.current = r}

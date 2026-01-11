@@ -61,10 +61,14 @@ export const createCroppedSelection = async (src: string, lassoPoints: Point[], 
   return canvas.toDataURL('image/jpeg', 0.8);
 };
 
-// Applies mask with erosion
+/**
+ * Applies a Black and White mask to an image to create transparency.
+ * Updated to remove aggressive erosion and provide smoother alpha transitions.
+ */
 export const applyMaskToImage = async (originalSrc: string, maskSrc: string): Promise<string> => {
   const [original, mask] = await Promise.all([loadImage(originalSrc), loadImage(maskSrc)]);
   const width = original.width, height = original.height;
+  
   const canvas = document.createElement('canvas');
   canvas.width = width; canvas.height = height;
   const ctx = canvas.getContext('2d')!;
@@ -72,34 +76,30 @@ export const applyMaskToImage = async (originalSrc: string, maskSrc: string): Pr
   const maskCanvas = document.createElement('canvas');
   maskCanvas.width = width; maskCanvas.height = height;
   const maskCtx = maskCanvas.getContext('2d')!;
+  
+  // Draw the raw B&W mask to the mask canvas
   maskCtx.drawImage(mask, 0, 0, width, height);
   const maskImageData = maskCtx.getImageData(0, 0, width, height);
   const data = maskImageData.data;
 
+  // Convert B&W pixel data to Alpha values
   for (let i = 0; i < data.length; i += 4) {
-      const avg = (data[i] + data[i+1] + data[i+2]) / 3;
-      data[i+3] = avg < 100 ? 0 : 255; 
+      // Use the actual luminance value for alpha to allow for smooth/anti-aliased edges
+      const luminance = (data[i] + data[i+1] + data[i+2]) / 3;
+      data[i+3] = luminance; 
+      // Set the base color to white; destination-in will handle the masking correctly
       data[i] = 255; data[i+1] = 255; data[i+2] = 255;
   }
 
-  // Edge refinement
-  for (let k = 0; k < 2; k++) {
-    const snapshot = new Uint8ClampedArray(data);
-    for (let y = 1; y < height - 1; y++) {
-      for (let x = 1; x < width - 1; x++) {
-        const idx = (y * width + x) * 4;
-        if (snapshot[idx + 3] > 0) {
-          if (snapshot[idx-4+3] === 0 || snapshot[idx+4+3] === 0 || snapshot[idx-(width*4)+3] === 0 || snapshot[idx+(width*4)+3] === 0) {
-            data[idx + 3] = 0;
-          }
-        }
-      }
-    }
-  }
+  // The pixel-level erosion loop has been removed to prevent sharp/pixelated corners.
+  // This allows the natural soft edges from the AI model to persist.
+
   maskCtx.putImageData(maskImageData, 0, 0);
 
+  // Perform the actual masking operation
   ctx.drawImage(original, 0, 0);
   ctx.globalCompositeOperation = 'destination-in';
   ctx.drawImage(maskCanvas, 0, 0);
+  
   return canvas.toDataURL('image/png');
 };

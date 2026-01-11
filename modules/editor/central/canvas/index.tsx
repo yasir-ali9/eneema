@@ -22,6 +22,7 @@ interface CanvasBoardProps {
   onSelectNode: (id: string | null) => void;
   onSelectNodes: (ids: string[]) => void;
   onDeleteNode: (id: string) => void;
+  onDuplicateNodes: () => void;
   setCanvasRef: (ref: HTMLCanvasElement | null) => void;
   showGrid: boolean;
 }
@@ -32,7 +33,7 @@ interface CanvasBoardProps {
  */
 const CanvasBoard: React.FC<CanvasBoardProps> = ({ 
   nodes, toolMode, setToolMode, selectedNodeIds, lassoPath, 
-  onSetLassoPath, onUpdateNodes, onPushHistory, onSelectNode, onSelectNodes, onDeleteNode, setCanvasRef, showGrid 
+  onSetLassoPath, onUpdateNodes, onPushHistory, onSelectNode, onSelectNodes, onDeleteNode, onDuplicateNodes, setCanvasRef, showGrid 
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -45,6 +46,9 @@ const CanvasBoard: React.FC<CanvasBoardProps> = ({
 
   // History optimization: Snapshots the nodes before an interaction starts
   const initialNodesRef = useRef<EditorNode[] | null>(null);
+  
+  // Stores the tool mode to return to after releasing the temporary Space-hold pan
+  const previousToolRef = useRef<ToolMode | null>(null);
 
   // Marquee state
   const [marquee, setMarquee] = useState<{ start: Point, end: Point } | null>(null);
@@ -67,7 +71,7 @@ const CanvasBoard: React.FC<CanvasBoardProps> = ({
     if (ctx) renderCanvas(ctx, nodes, imageCache, viewport, lassoPath, marquee, showGrid);
   }, [nodes, imageCache, viewport, lassoPath, marquee, showGrid]);
 
-  // Sync window resizing and global hotkeys
+  // Sync window resizing and global hotkeys including temporary Space-pan logic
   useEffect(() => {
     const resize = () => { 
         if (containerRef.current && canvasRef.current) { 
@@ -76,27 +80,67 @@ const CanvasBoard: React.FC<CanvasBoardProps> = ({
             draw(); 
         } 
     };
-    const onKey = (e: KeyboardEvent) => handleKeyboardShortcuts(e, setToolMode, () => {
-        selectedNodeIds.forEach(onDeleteNode);
-    });
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      // Handle temporary space-to-pan activation (Figma/Photoshop style)
+      if (e.code === 'Space' && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
+        // Prevent default browser scrolling when space is pressed
+        e.preventDefault();
+        // If we aren't already in PAN mode and haven't stored a previous tool yet, activate PAN
+        if (toolMode !== ToolMode.PAN && !previousToolRef.current) {
+          previousToolRef.current = toolMode;
+          setToolMode(ToolMode.PAN);
+        }
+      }
+
+      // Delegate other standard shortcuts to the keyboard handler
+      handleKeyboardShortcuts(
+        e, 
+        setToolMode, 
+        () => { selectedNodeIds.forEach(onDeleteNode); }, 
+        onDuplicateNodes,
+        () => {
+          // Cancel Action: Clear lasso path and any active node selection
+          onSetLassoPath([]);
+          onSelectNodes([]);
+        }
+      );
+    };
+
+    const onKeyUp = (e: KeyboardEvent) => {
+      // Detect release of Space bar to restore previous tool
+      if (e.code === 'Space' && previousToolRef.current !== null) {
+        setToolMode(previousToolRef.current);
+        previousToolRef.current = null;
+      }
+    };
+
     window.addEventListener('resize', resize);
-    window.addEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
     resize();
     return () => {
         window.removeEventListener('resize', resize);
-        window.removeEventListener('keydown', onKey);
+        window.removeEventListener('keydown', onKeyDown);
+        window.removeEventListener('keyup', onKeyUp);
     };
-  }, [draw, setToolMode, selectedNodeIds, onDeleteNode]);
+  }, [draw, toolMode, setToolMode, selectedNodeIds, onDeleteNode, onDuplicateNodes, onSetLassoPath, onSelectNodes]);
 
   useEffect(() => { draw(); }, [draw]);
 
-  // Setup Wheel Zoom listener
+  // Setup Wheel interaction: Normal scroll for vertical pan, Ctrl+scroll for zoom
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      setViewport(v => handleWheelZoom(e, v, el.getBoundingClientRect()));
+      // If Ctrl key (or Meta key on Mac) is held, we perform zooming
+      if (e.ctrlKey || e.metaKey) {
+        setViewport(v => handleWheelZoom(e, v, el.getBoundingClientRect()));
+      } else {
+        // Otherwise, move canvas in vertical direction only
+        setViewport(v => applyPan(v, 0, -e.deltaY));
+      }
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);

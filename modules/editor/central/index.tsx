@@ -14,6 +14,7 @@ interface CentralAreaProps {
   onUpdateNodes: (nodes: EditorNode[]) => void;
   onPushHistory: (snapshot: EditorNode[]) => void;
   onDeleteNode: (id: string) => void;
+  onDuplicateNodes: () => void;
   isProcessing: boolean;
   onDetach: () => void;
   setCanvasRef: (ref: HTMLCanvasElement | null) => void;
@@ -41,6 +42,7 @@ const CentralArea: React.FC<CentralAreaProps> = (props) => {
         onUpdateNodes={props.onUpdateNodes}
         onPushHistory={props.onPushHistory}
         onDeleteNode={props.onDeleteNode}
+        onDuplicateNodes={props.onDuplicateNodes}
         onSelectNode={id => { 
           props.setSelectedNodeIds(id ? [id] : []); 
           if (props.toolMode === ToolMode.SELECT) props.setLassoPath([]); 
