@@ -1,4 +1,5 @@
-import { Point } from './types';
+
+import { Point } from './types.ts';
 
 // Promisified image loader
 export const loadImage = (src: string): Promise<HTMLImageElement> => {
@@ -11,14 +12,22 @@ export const loadImage = (src: string): Promise<HTMLImageElement> => {
   });
 };
 
-// Calculates bounding box for a path
-export const getBoundingBox = (points: Point[]) => {
-  if (points.length === 0) return null;
+// Calculates bounding box for a path or multiple paths
+export const getBoundingBox = (points: Point[], extraStrokes: Point[][] = []) => {
+  if (points.length === 0 && extraStrokes.length === 0) return null;
+  
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  points.forEach(p => {
+  
+  const processPoint = (p: Point) => {
     if (p.x < minX) minX = p.x; if (p.y < minY) minY = p.y;
     if (p.x > maxX) maxX = p.x; if (p.y > maxY) maxY = p.y;
-  });
+  };
+
+  points.forEach(processPoint);
+  extraStrokes.forEach(stroke => stroke.forEach(processPoint));
+
+  if (minX === Infinity) return null; // Safety check
+
   return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
 };
 
@@ -35,7 +44,8 @@ export const resizeImageForApi = async (base64Str: string, maxDim = 1024): Promi
   }
   const canvas = document.createElement('canvas');
   canvas.width = w; canvas.height = h;
-  canvas.getContext('2d')?.drawImage(img, 0, 0, w, h);
+  const ctx = canvas.getContext('2d');
+  if (ctx) ctx.drawImage(img, 0, 0, w, h);
   return canvas.toDataURL('image/jpeg', 0.8);
 };
 

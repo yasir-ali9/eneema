@@ -9,8 +9,10 @@ export const renderCanvas = (
   imageCache: Record<string, HTMLImageElement>,
   viewport: Viewport,
   lassoPath: Point[],
+  brushStrokes: Point[][],
   marquee: { start: Point, end: Point } | null,
-  showGrid: boolean = true
+  showGrid: boolean = true,
+  offscreenCanvas: HTMLCanvasElement | null = null
 ) => {
   const { width, height } = ctx.canvas;
   
@@ -67,7 +69,48 @@ export const renderCanvas = (
     ctx.setLineDash([]);
   }
 
-  // 4. Render Marquee Rect
+  // 4. Render Brush Strokes with Uniform Opacity
+  if (brushStrokes.length > 0) {
+    // Use the passed offscreen canvas or create a temporary one (fallback)
+    const buffer = offscreenCanvas || document.createElement('canvas');
+    if (!offscreenCanvas) {
+        buffer.width = width;
+        buffer.height = height;
+    }
+    
+    const offCtx = buffer.getContext('2d');
+    if (offCtx) {
+        // Clear buffer
+        offCtx.setTransform(1, 0, 0, 1, 0, 0);
+        offCtx.clearRect(0, 0, buffer.width, buffer.height);
+        
+        // Match viewport transform
+        offCtx.translate(viewport.x, viewport.y);
+        offCtx.scale(viewport.zoom, viewport.zoom);
+        
+        offCtx.lineCap = 'round';
+        offCtx.lineJoin = 'round';
+        offCtx.lineWidth = 30; // Constant brush size
+        offCtx.strokeStyle = '#2460b7'; // Solid Blue (ac-01)
+        
+        brushStrokes.forEach(stroke => {
+          if (stroke.length < 1) return;
+          offCtx.beginPath();
+          offCtx.moveTo(stroke[0].x, stroke[0].y);
+          stroke.forEach(p => offCtx.lineTo(p.x, p.y));
+          offCtx.stroke();
+        });
+        
+        // Composite the opaque brush strokes onto the main canvas with uniform transparency
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform to draw screen-aligned buffer
+        ctx.globalAlpha = 0.5; // Uniform transparency 50%
+        ctx.drawImage(buffer, 0, 0);
+        ctx.restore();
+    }
+  }
+
+  // 5. Render Marquee Rect
   if (marquee) {
     const x = Math.min(marquee.start.x, marquee.end.x);
     const y = Math.min(marquee.start.y, marquee.end.y);

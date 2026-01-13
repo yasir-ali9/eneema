@@ -2,29 +2,68 @@ import { Point } from '../../core/types.ts';
 import { loadImage, getBoundingBox } from '../../central/canvas/helpers/canvas.utils.ts';
 
 /**
- * Generates a cropped version of the image focused on the lasso selection.
+ * Generates a cropped version of the image focused on the lasso/brush selection.
  * Adds a visual "Red Highlight" to help the Reasoning Model identify the object.
  */
-export const createCroppedSelection = async (src: string, lassoPoints: Point[], origW: number, origH: number, padding: number = 120): Promise<string> => {
+export const createCroppedSelection = async (
+    src: string, 
+    lassoPoints: Point[], 
+    origW: number, 
+    origH: number, 
+    padding: number = 120,
+    brushStrokes: Point[][] = []
+): Promise<string> => {
   const img = await loadImage(src);
-  const bbox = getBoundingBox(lassoPoints);
+  const bbox = getBoundingBox(lassoPoints, brushStrokes);
   if (!bbox) return src; 
+  
   const scaleX = img.width / origW, scaleY = img.height / origH;
   const cropX = Math.max(0, (bbox.x - padding) * scaleX), cropY = Math.max(0, (bbox.y - padding) * scaleY);
   const cropW = Math.min(img.width - cropX, (bbox.width + padding * 2) * scaleX), cropH = Math.min(img.height - cropY, (bbox.height + padding * 2) * scaleY);
+  
   const canvas = document.createElement('canvas');
   canvas.width = cropW; canvas.height = cropH;
   const ctx = canvas.getContext('2d')!;
+  
+  // 1. Draw Base Image
   ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
   
-  // High-visibility red highlight for the AI Reasoning model
-  ctx.fillStyle = 'rgba(255, 0, 0, 0.6)';
-  ctx.beginPath();
+  // 2. Draw Selection Mask to Buffer
+  const buffer = document.createElement('canvas');
+  buffer.width = cropW; buffer.height = cropH;
+  const bCtx = buffer.getContext('2d')!;
+  
+  bCtx.fillStyle = '#FF0000';
+  bCtx.strokeStyle = '#FF0000';
+  bCtx.lineCap = 'round';
+  bCtx.lineJoin = 'round';
+  bCtx.lineWidth = 30 * scaleX; // Scale brush width to image resolution
+
+  // Lasso fill
   if (lassoPoints.length > 0) {
-      ctx.moveTo((lassoPoints[0].x * scaleX) - cropX, (lassoPoints[0].y * scaleY) - cropY);
-      for(let i=1; i<lassoPoints.length; i++) ctx.lineTo((lassoPoints[i].x * scaleX) - cropX, (lassoPoints[i].y * scaleY) - cropY);
-      ctx.closePath(); ctx.fill();
+      bCtx.beginPath();
+      bCtx.moveTo((lassoPoints[0].x * scaleX) - cropX, (lassoPoints[0].y * scaleY) - cropY);
+      for(let i=1; i<lassoPoints.length; i++) bCtx.lineTo((lassoPoints[i].x * scaleX) - cropX, (lassoPoints[i].y * scaleY) - cropY);
+      bCtx.closePath(); bCtx.fill();
   }
+
+  // Brush strokes
+  if (brushStrokes.length > 0) {
+      brushStrokes.forEach(stroke => {
+          if (stroke.length < 1) return;
+          bCtx.beginPath();
+          bCtx.moveTo((stroke[0].x * scaleX) - cropX, (stroke[0].y * scaleY) - cropY);
+          stroke.forEach(p => bCtx.lineTo((p.x * scaleX) - cropX, (p.y * scaleY) - cropY));
+          bCtx.stroke();
+      });
+  }
+
+  // 3. Composite with Uniform Transparency
+  ctx.save();
+  ctx.globalAlpha = 0.45; // 45% transparency for optimal AI visibility
+  ctx.drawImage(buffer, 0, 0);
+  ctx.restore();
+
   return canvas.toDataURL('image/jpeg', 0.8);
 };
 
@@ -49,12 +88,14 @@ export const applyMaskToImage = async (originalSrc: string, maskSrc: string): Pr
   const data = maskImageData.data;
 
   // Professional Thresholding
+  // Increased threshold to 40 to eliminate background halos more aggressively
   for (let i = 0; i < data.length; i += 4) {
       const luminance = (data[i] + data[i+1] + data[i+2]) / 3;
       let alpha = 0;
-      if (luminance > 30) {
-          alpha = Math.min(255, (luminance - 30) * 1.2);
-          if (luminance > 220) alpha = 255;
+      if (luminance > 40) {
+          // Steeper curve for sharper edges
+          alpha = Math.min(255, (luminance - 40) * 1.5);
+          if (luminance > 210) alpha = 255;
       }
       data[i+3] = alpha; 
       data[i] = 255; data[i+1] = 255; data[i+2] = 255;

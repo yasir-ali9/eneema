@@ -11,6 +11,8 @@ interface CentralAreaProps {
   setSelectedNodeIds: (ids: string[]) => void;
   lassoPath: Point[];
   setLassoPath: (path: Point[]) => void;
+  brushStrokes: Point[][];
+  setBrushStrokes: (strokes: Point[][]) => void;
   onUpdateNodes: (nodes: EditorNode[]) => void;
   onPushHistory: (snapshot: EditorNode[]) => void;
   onDeleteNode: (id: string) => void;
@@ -41,17 +43,25 @@ const CentralArea: React.FC<CentralAreaProps> = (props) => {
         selectedNodeIds={props.selectedNodeIds} 
         lassoPath={props.lassoPath} 
         onSetLassoPath={props.setLassoPath} 
+        brushStrokes={props.brushStrokes}
+        onSetBrushStrokes={props.setBrushStrokes}
         onUpdateNodes={props.onUpdateNodes}
         onPushHistory={props.onPushHistory}
         onDeleteNode={props.onDeleteNode}
         onDuplicateNodes={props.onDuplicateNodes}
         onSelectNode={id => { 
           props.setSelectedNodeIds(id ? [id] : []); 
-          if (props.toolMode === ToolMode.SELECT) props.setLassoPath([]); 
+          if (props.toolMode === ToolMode.SELECT) {
+             props.setLassoPath([]); 
+             props.setBrushStrokes([]);
+          }
         }} 
         onSelectNodes={ids => {
           props.setSelectedNodeIds(ids);
-          if (props.toolMode === ToolMode.SELECT) props.setLassoPath([]);
+          if (props.toolMode === ToolMode.SELECT) {
+             props.setLassoPath([]);
+             props.setBrushStrokes([]);
+          }
         }}
         setCanvasRef={props.setCanvasRef} 
         showGrid={props.showGrid}
@@ -64,7 +74,7 @@ const CentralArea: React.FC<CentralAreaProps> = (props) => {
         onPlace={props.onPlace}
         canPlace={props.canPlace}
         isProcessing={props.isProcessing} 
-        hasSelection={props.lassoPath.length > 2} 
+        hasSelection={props.lassoPath.length > 2 || props.brushStrokes.length > 0} 
         hasActiveNode={props.selectedNodeIds.length > 0} 
         onUndo={props.onUndo}
         onRedo={props.onRedo}

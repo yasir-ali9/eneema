@@ -11,14 +11,22 @@ export const loadImage = (src: string): Promise<HTMLImageElement> => {
   });
 };
 
-// Gets bounding box of path
-export const getBoundingBox = (points: Point[]) => {
-  if (points.length === 0) return null;
+// Gets bounding box of path and optional extra strokes
+export const getBoundingBox = (points: Point[], extraStrokes: Point[][] = []) => {
+  if (points.length === 0 && extraStrokes.length === 0) return null;
+  
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-  points.forEach(p => {
+  
+  const processPoint = (p: Point) => {
     if (p.x < minX) minX = p.x; if (p.y < minY) minY = p.y;
     if (p.x > maxX) maxX = p.x; if (p.y > maxY) maxY = p.y;
-  });
+  };
+
+  points.forEach(processPoint);
+  extraStrokes.forEach(stroke => stroke.forEach(processPoint));
+
+  if (minX === Infinity) return null;
+
   return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
 };
 

@@ -17,6 +17,8 @@ interface CanvasBoardProps {
   selectedNodeIds: string[];
   lassoPath: Point[];
   onSetLassoPath: (path: Point[]) => void;
+  brushStrokes: Point[][];
+  onSetBrushStrokes: (strokes: Point[][]) => void;
   onUpdateNodes: (nodes: EditorNode[]) => void;
   onPushHistory: (snapshot: EditorNode[]) => void;
   onSelectNode: (id: string | null) => void;
@@ -33,10 +35,11 @@ interface CanvasBoardProps {
  */
 const CanvasBoard: React.FC<CanvasBoardProps> = ({ 
   nodes, toolMode, setToolMode, selectedNodeIds, lassoPath, 
-  onSetLassoPath, onUpdateNodes, onPushHistory, onSelectNode, onSelectNodes, onDeleteNode, onDuplicateNodes, setCanvasRef, showGrid 
+  onSetLassoPath, brushStrokes, onSetBrushStrokes, onUpdateNodes, onPushHistory, onSelectNode, onSelectNodes, onDeleteNode, onDuplicateNodes, setCanvasRef, showGrid 
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const offscreenRef = useRef<HTMLCanvasElement | null>(null);
   
   const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, zoom: 1 });
   const [currentAction, setCurrentAction] = useState<EditorAction>(EditorAction.IDLE);
@@ -68,15 +71,35 @@ const CanvasBoard: React.FC<CanvasBoardProps> = ({
   // Main Draw function
   const draw = useCallback(() => {
     const ctx = canvasRef.current?.getContext('2d');
-    if (ctx) renderCanvas(ctx, nodes, imageCache, viewport, lassoPath, marquee, showGrid);
-  }, [nodes, imageCache, viewport, lassoPath, marquee, showGrid]);
+    if (ctx) {
+      renderCanvas(
+        ctx, 
+        nodes, 
+        imageCache, 
+        viewport, 
+        lassoPath, 
+        brushStrokes, 
+        marquee, 
+        showGrid, 
+        offscreenRef.current
+      );
+    }
+  }, [nodes, imageCache, viewport, lassoPath, brushStrokes, marquee, showGrid]);
 
   // Sync window resizing and global hotkeys including temporary Space-pan logic
   useEffect(() => {
     const resize = () => { 
         if (containerRef.current && canvasRef.current) { 
             canvasRef.current.width = containerRef.current.clientWidth; 
-            canvasRef.current.height = containerRef.current.clientHeight; 
+            canvasRef.current.height = containerRef.current.clientHeight;
+            
+            // Resize offscreen buffer to match
+            if (!offscreenRef.current) {
+                offscreenRef.current = document.createElement('canvas');
+            }
+            offscreenRef.current.width = canvasRef.current.width;
+            offscreenRef.current.height = canvasRef.current.height;
+
             draw(); 
         } 
     };
@@ -100,8 +123,9 @@ const CanvasBoard: React.FC<CanvasBoardProps> = ({
         () => { selectedNodeIds.forEach(onDeleteNode); }, 
         onDuplicateNodes,
         () => {
-          // Cancel Action: Clear lasso path and any active node selection
+          // Cancel Action: Clear selections
           onSetLassoPath([]);
+          onSetBrushStrokes([]);
           onSelectNodes([]);
         }
       );
@@ -124,7 +148,7 @@ const CanvasBoard: React.FC<CanvasBoardProps> = ({
         window.removeEventListener('keydown', onKeyDown);
         window.removeEventListener('keyup', onKeyUp);
     };
-  }, [draw, toolMode, setToolMode, selectedNodeIds, onDeleteNode, onDuplicateNodes, onSetLassoPath, onSelectNodes]);
+  }, [draw, toolMode, setToolMode, selectedNodeIds, onDeleteNode, onDuplicateNodes, onSetLassoPath, onSetBrushStrokes, onSelectNodes]);
 
   useEffect(() => { draw(); }, [draw]);
 
@@ -187,7 +211,14 @@ const CanvasBoard: React.FC<CanvasBoardProps> = ({
     // Capture snapshot for history before starting any action
     initialNodesRef.current = [...nodes];
     
-    const action = handleMouseDownAction(worldPos, toolMode, nodes, selectedNodeIds, activeHandle, onSelectNode, onSetLassoPath);
+    // Clear opposite selection types if switching modes
+    if (toolMode === ToolMode.LASSO && brushStrokes.length > 0) onSetBrushStrokes([]);
+    if (toolMode === ToolMode.BRUSH && lassoPath.length > 0) onSetLassoPath([]);
+
+    const action = handleMouseDownAction(
+        worldPos, toolMode, nodes, selectedNodeIds, activeHandle, 
+        onSelectNode, onSetLassoPath, onSetBrushStrokes, brushStrokes
+    );
     if (action === EditorAction.MARQUEE) {
       setMarquee({ start: worldPos, end: worldPos });
     }
@@ -204,7 +235,8 @@ const CanvasBoard: React.FC<CanvasBoardProps> = ({
     handleMouseMoveAction(
         worldPos, dx, dy, currentAction, viewport, 
         selectedNodes,
-        activeHandle, lassoPath, onUpdateNodes, onSetLassoPath,
+        activeHandle, lassoPath, brushStrokes,
+        onUpdateNodes, onSetLassoPath, onSetBrushStrokes,
         (pdx, pdy) => setViewport(v => applyPan(v, pdx, pdy)),
         (mPos) => setMarquee(prev => prev ? { ...prev, end: mPos } : null)
     );

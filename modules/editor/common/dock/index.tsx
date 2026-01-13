@@ -1,6 +1,6 @@
 import React from 'react';
 import { ToolMode } from '../../core/types.ts';
-import { MousePointer2, Lasso, Scissors, Hand, Undo2, Redo2, Stamp } from 'lucide-react';
+import { MousePointer2, Lasso, Brush, Scissors, Hand, Undo2, Redo2, Stamp } from 'lucide-react';
 import { Button } from '../../../../components/button.tsx';
 
 interface DockProps {
@@ -20,7 +20,7 @@ interface DockProps {
 
 /**
  * Dock Component
- * Updated with History controls and Move, Hand, Lasso tools.
+ * Updated with History controls and Move, Hand, Lasso, Brush tools.
  */
 const Dock: React.FC<DockProps> = ({ 
   toolMode, onSetToolMode, onDetach, onPlace, isProcessing, 
@@ -77,6 +77,14 @@ const Dock: React.FC<DockProps> = ({
             title="Lasso Tool (L)"
           >
             <Lasso size={18} />
+          </Button>
+          <Button 
+            variant={toolMode === ToolMode.BRUSH ? 'primary' : 'ghost'} 
+            size="icon" 
+            onClick={() => onSetToolMode(ToolMode.BRUSH)}
+            title="Brush Tool (B)"
+          >
+            <Brush size={18} />
           </Button>
         </div>
 

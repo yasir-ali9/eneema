@@ -3,7 +3,7 @@ import { findNodeAt } from '../interactions/selectable.ts';
 
 /**
  * Determines what action to start when the mouse is pressed.
- * Logic updated to respect existing multi-selections.
+ * Logic updated to respect existing multi-selections and Brush mode.
  */
 export const handleMouseDownAction = (
   worldPos: Point,
@@ -12,7 +12,9 @@ export const handleMouseDownAction = (
   selectedNodeIds: string[],
   activeHandle: HandleType | null,
   onSelectNode: (id: string | null) => void,
-  onSetLassoPath: (path: Point[]) => void
+  onSetLassoPath: (path: Point[]) => void,
+  onSetBrushStrokes: (strokes: Point[][]) => void,
+  currentStrokes: Point[][]
 ): EditorAction => {
   // 1. Pan Tool override
   if (toolMode === ToolMode.PAN) return EditorAction.PANNING;
@@ -43,6 +45,13 @@ export const handleMouseDownAction = (
   if (toolMode === ToolMode.LASSO) {
     onSetLassoPath([worldPos]);
     return EditorAction.LASSOING;
+  }
+
+  // 4. Brush Mode logic
+  if (toolMode === ToolMode.BRUSH) {
+    // Start a new stroke
+    onSetBrushStrokes([...currentStrokes, [worldPos]]);
+    return EditorAction.BRUSHING;
   }
 
   return EditorAction.IDLE;

@@ -34,6 +34,10 @@ export const getCursorForHover = (
   if (toolMode === ToolMode.LASSO) {
     return 'crosshair';
   }
+  
+  if (toolMode === ToolMode.BRUSH) {
+    return 'crosshair'; // Or we could use a custom brush cursor later
+  }
 
   // 4. Default Select mode hover detection
   if (toolMode === ToolMode.SELECT) {

@@ -1,3 +1,4 @@
+
 // 2D coordinate system
 export interface Point {
   x: number;
@@ -29,6 +30,7 @@ export interface EditorNode {
 export enum ToolMode {
   SELECT = 'SELECT',
   LASSO = 'LASSO',
+  BRUSH = 'BRUSH',
   PAN = 'PAN',
 }
 
@@ -39,6 +41,7 @@ export enum EditorAction {
   DRAGGING = 'DRAGGING',
   RESIZING = 'RESIZING',
   LASSOING = 'LASSOING',
+  BRUSHING = 'BRUSHING',
   MARQUEE = 'MARQUEE',
 }
 

@@ -20,6 +20,7 @@ const EditorRoot: React.FC = () => {
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [toolMode, setToolMode] = useState<ToolMode>(ToolMode.SELECT);
   const [lassoPath, setLassoPath] = useState<Point[]>([]);
+  const [brushStrokes, setBrushStrokes] = useState<Point[][]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [projectName, setProjectName] = useState("Gemini 3 Project");
   const [showGrid, setShowGrid] = useState(false);
@@ -30,10 +31,12 @@ const EditorRoot: React.FC = () => {
     nodes,
     selectedNodeIds,
     lassoPath,
+    brushStrokes,
     pushHistory,
     setNodes,
     setSelectedNodeIds,
     setLassoPath,
+    setBrushStrokes,
     setToolMode
   };
 
@@ -149,7 +152,7 @@ const EditorRoot: React.FC = () => {
   };
 
   const handleDetach = async () => {
-    if (!selectedNodeIds[0] || lassoPath.length < 3) return;
+    if (!selectedNodeIds[0] || (lassoPath.length < 3 && brushStrokes.length === 0)) return;
     setIsProcessing(true);
     try {
         await DetachTool.execute(toolContext);
@@ -213,6 +216,8 @@ const EditorRoot: React.FC = () => {
         setSelectedNodeIds={setSelectedNodeIds}
         lassoPath={lassoPath}
         setLassoPath={setLassoPath}
+        brushStrokes={brushStrokes}
+        setBrushStrokes={setBrushStrokes}
         onUpdateNodes={handleUpdateNodes}
         onPushHistory={handlePushHistory}
         onDeleteNode={handleDeleteNode}

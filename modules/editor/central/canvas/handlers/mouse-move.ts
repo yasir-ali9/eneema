@@ -13,8 +13,10 @@ export const handleMouseMoveAction = (
   selectedNodes: EditorNode[],
   activeHandle: HandleType | null,
   lassoPath: Point[],
+  brushStrokes: Point[][],
   onUpdateNodes: (nodes: EditorNode[]) => void,
   onSetLassoPath: (path: Point[]) => void,
+  onSetBrushStrokes: (strokes: Point[][]) => void,
   onUpdateViewport: (dx: number, dy: number) => void,
   onUpdateMarquee: (pos: Point) => void
 ) => {
@@ -44,6 +46,16 @@ export const handleMouseMoveAction = (
 
     case EditorAction.LASSOING:
       onSetLassoPath([...lassoPath, worldPos]);
+      break;
+      
+    case EditorAction.BRUSHING:
+      if (brushStrokes.length > 0) {
+        const strokes = [...brushStrokes];
+        const currentStroke = strokes[strokes.length - 1];
+        // Add point to current stroke
+        strokes[strokes.length - 1] = [...currentStroke, worldPos];
+        onSetBrushStrokes(strokes);
+      }
       break;
 
     case EditorAction.MARQUEE:

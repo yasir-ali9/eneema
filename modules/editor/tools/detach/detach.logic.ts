@@ -5,27 +5,65 @@ import { loadImage } from '../../central/canvas/helpers/canvas.utils.ts';
 import { EditorNode, ToolMode } from '../../core/types.ts';
 
 export const execute = async (ctx: ToolExecutionContext): Promise<void> => {
-    const { nodes, selectedNodeIds, lassoPath, pushHistory, setNodes, setSelectedNodeIds, setLassoPath, setToolMode } = ctx;
+    const { nodes, selectedNodeIds, lassoPath, brushStrokes, pushHistory, setNodes, setSelectedNodeIds, setLassoPath, setBrushStrokes, setToolMode } = ctx;
 
-    if (!selectedNodeIds[0] || lassoPath.length < 3) return;
+    // Must have a selected node and SOME selection (lasso or brush)
+    if (!selectedNodeIds[0] || (lassoPath.length < 3 && brushStrokes.length === 0)) return;
 
     const active = nodes.find(n => n.id === selectedNodeIds[0])!;
     const originalImg = await loadImage(active.src);
 
-    // Convert global lasso points to local node space
-    const localPath = lassoPath.map(p => ({ x: p.x - active.x, y: p.y - active.y }));
+    // Convert global points to local node space
+    const localLasso = lassoPath.map(p => ({ x: p.x - active.x, y: p.y - active.y }));
+    const localStrokes = brushStrokes.map(stroke => stroke.map(p => ({ x: p.x - active.x, y: p.y - active.y })));
     
     // Create Visual Hint (Red overlay) for the AI
     const hintCanvas = document.createElement('canvas'); 
     hintCanvas.width = active.width; hintCanvas.height = active.height;
     const hCtx = hintCanvas.getContext('2d')!; 
+    
+    // 1. Draw base image (Clean)
     hCtx.drawImage(originalImg, 0, 0, active.width, active.height);
-    hCtx.fillStyle = 'rgba(255, 0, 0, 0.7)'; 
-    hCtx.beginPath(); hCtx.moveTo(localPath[0].x, localPath[0].y);
-    localPath.forEach(p => hCtx.lineTo(p.x, p.y)); hCtx.fill();
+    
+    // 2. Create an offscreen buffer for the selection mask
+    // This prevents opacity accumulation when strokes overlap, ensuring the AI can see the object features.
+    const buffer = document.createElement('canvas');
+    buffer.width = active.width; buffer.height = active.height;
+    const bCtx = buffer.getContext('2d')!;
+    
+    bCtx.fillStyle = '#FF0000'; 
+    bCtx.strokeStyle = '#FF0000';
+    bCtx.lineCap = 'round';
+    bCtx.lineJoin = 'round';
+    bCtx.lineWidth = 30; // Match renderer width
 
-    // Get optimized inputs for API
-    const croppedHint = await createCroppedSelection(active.src, localPath, active.width, active.height);
+    // Draw Lasso Fill on buffer
+    if (localLasso.length > 2) {
+        bCtx.beginPath(); 
+        bCtx.moveTo(localLasso[0].x, localLasso[0].y);
+        localLasso.forEach(p => bCtx.lineTo(p.x, p.y)); 
+        bCtx.fill();
+    }
+
+    // Draw Brush Strokes on buffer
+    if (localStrokes.length > 0) {
+        localStrokes.forEach(stroke => {
+            if (stroke.length < 1) return;
+            bCtx.beginPath();
+            bCtx.moveTo(stroke[0].x, stroke[0].y);
+            stroke.forEach(p => bCtx.lineTo(p.x, p.y));
+            bCtx.stroke();
+        });
+    }
+
+    // 3. Composite buffer onto the main image with uniform transparency
+    hCtx.save();
+    hCtx.globalAlpha = 0.45; // 45% Red - Transparent enough for AI to see texture, visible enough to mark object
+    hCtx.drawImage(buffer, 0, 0);
+    hCtx.restore();
+
+    // Get optimized inputs for API (pass explicit strokes to utility)
+    const croppedHint = await createCroppedSelection(active.src, localLasso, active.width, active.height, 120, localStrokes);
     
     // Call AI
     const result = await detachObjectWithGemini(active.src, hintCanvas.toDataURL(), croppedHint);
@@ -101,5 +139,6 @@ export const execute = async (ctx: ToolExecutionContext): Promise<void> => {
     
     setNodes(finalNodes);
     setLassoPath([]); 
+    setBrushStrokes([]);
     setToolMode(ToolMode.SELECT);
 };

@@ -18,6 +18,7 @@ export const handleKeyboardShortcuts = (
   if (key === 'v') onSetToolMode(ToolMode.SELECT);
   if (key === 'h') onSetToolMode(ToolMode.PAN);
   if (key === 'l') onSetToolMode(ToolMode.LASSO);
+  if (key === 'b') onSetToolMode(ToolMode.BRUSH);
 
   // Actions
   if (key === 'delete' || key === 'backspace') {
