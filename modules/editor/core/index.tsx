@@ -233,7 +233,12 @@ const EditorRoot: React.FC = () => {
         canUndo={canUndo}
         canRedo={canRedo}
       />
-      <RightPanel />
+      <RightPanel 
+        nodes={nodes}
+        selectedNodeIds={selectedNodeIds}
+        onUpdateNodes={handleUpdateNodes}
+        onPushHistory={() => pushHistory(nodes)}
+      />
     </div>
   );
 };
