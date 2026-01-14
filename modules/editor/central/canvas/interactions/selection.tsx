@@ -10,6 +10,8 @@ interface SelectionOverlayProps {
 /**
  * SelectionOverlay Component
  * Renders a bounding box. If multiple nodes are selected, it encompasses all of them.
+ * Updated to draw borders OUTSIDE the content boundaries to prevent visual overlap or clipping errors.
+ * Fixed multi-select visual thickness by aligning inner/outer borders.
  */
 export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({ selectedNodes, viewport, onResizeStart }) => {
   if (selectedNodes.length === 0) return null;
@@ -34,16 +36,21 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({ selectedNode
   const screenY = minY * zoom + oy;
   const screenW = width * zoom;
   const screenH = height * zoom;
+  
+  // We expand the box by the border width so the border sits *outside* the image pixels.
+  const MAIN_BORDER_WIDTH = 1.3; 
+  const INNER_BORDER_WIDTH = 1.3;
 
   const containerStyle: React.CSSProperties = {
     position: 'absolute',
-    left: screenX,
-    top: screenY,
-    width: screenW,
-    height: screenH,
+    left: screenX - MAIN_BORDER_WIDTH,
+    top: screenY - MAIN_BORDER_WIDTH,
+    width: screenW + (MAIN_BORDER_WIDTH * 2),
+    height: screenH + (MAIN_BORDER_WIDTH * 2),
     pointerEvents: 'none',
-    border: '1.5px solid rgb(var(--ac-01))',
-    boxShadow: '0 0 0 1px rgba(255,255,255,0.1)',
+    border: `${MAIN_BORDER_WIDTH}px solid rgb(var(--ac-01))`,
+    boxSizing: 'border-box',
+    // Removed boxShadow to match inner stroke style and thickness
     zIndex: 30,
   };
 
@@ -61,7 +68,6 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({ selectedNode
   const edgeHandles: HandleType[] = ['n', 's', 'e', 'w'];
 
   // Only show handles if exactly one node is selected (simplified for now)
-  // or if we want to support group resizing later.
   const showHandles = selectedNodes.length === 1;
 
   return (
@@ -73,6 +79,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({ selectedNode
           className="absolute pointer-events-auto"
           style={{
             cursor: getCursor(h),
+            // Position handles relative to the border box
             top: h === 'n' ? -4 : h === 's' ? '100%' : 0,
             bottom: h === 'n' ? '100%' : h === 's' ? -4 : 0,
             left: h === 'w' ? -4 : h === 'e' ? '100%' : 0,
@@ -98,16 +105,22 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({ selectedNode
         />
       ))}
       
-      {/* Visual indication for multi-selection: show individual bounds lightly inside the main box */}
+      {/* Visual indication for multi-selection: show individual bounds strictly matching or surrounding the nodes */}
       {!showHandles && selectedNodes.map(node => (
         <div 
           key={node.id}
-          className="absolute border border-ac-01/30"
+          className="absolute"
           style={{
-            left: (node.x - minX) * zoom,
-            top: (node.y - minY) * zoom,
-            width: node.width * zoom,
-            height: node.height * zoom,
+            // Position relative to the main container's padding box (which starts at minX/minY)
+            // We subtract INNER_BORDER_WIDTH so the inner border sits *outside* the node content.
+            // If the node is at the edge (node.x == minX), left becomes -INNER_BORDER_WIDTH.
+            // This aligns the inner border ([-1.3, 0]) exactly with the container border ([-1.3, 0]), preventing double thickness.
+            left: (node.x - minX) * zoom - INNER_BORDER_WIDTH,
+            top: (node.y - minY) * zoom - INNER_BORDER_WIDTH,
+            width: node.width * zoom + (INNER_BORDER_WIDTH * 2),
+            height: node.height * zoom + (INNER_BORDER_WIDTH * 2),
+            border: `${INNER_BORDER_WIDTH}px solid rgb(var(--ac-01))`,
+            boxSizing: 'border-box'
           }}
         />
       ))}
