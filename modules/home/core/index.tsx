@@ -1,1 +1,0 @@
-// Moved to modules/editor/core/index.tsx

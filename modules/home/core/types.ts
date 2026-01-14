@@ -1,1 +1,0 @@
-// Moved to modules/editor/core/types.ts
