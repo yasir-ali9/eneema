@@ -41,16 +41,49 @@ export const renderCanvas = (
     ctx.stroke();
   }
 
-  // 2. Render Nodes
+  // 2. Render Nodes (Images)
+  // Updated to use "Object Fit: Cover" logic to prevent stretching/distortion
   nodes.forEach(node => {
     const img = imageCache[node.src];
     if (img) {
       ctx.save();
+      
+      // Move to center of node for rotation
       ctx.translate(node.x + node.width / 2, node.y + node.height / 2);
       ctx.rotate((node.rotation * Math.PI) / 180);
+      // Move back to top-left relative to rotation center
       ctx.translate(-node.width / 2, -node.height / 2);
+      
       ctx.globalAlpha = node.opacity;
-      ctx.drawImage(img, 0, 0, node.width, node.height);
+
+      // Clip content to the node box
+      ctx.beginPath();
+      ctx.rect(0, 0, node.width, node.height);
+      ctx.clip();
+
+      // Calculate aspect ratios
+      const imgRatio = img.width / img.height;
+      const nodeRatio = node.width / node.height;
+      
+      let drawW, drawH, offsetX, offsetY;
+
+      // "Cover" logic: Fill the box entirely while maintaining aspect ratio
+      if (nodeRatio > imgRatio) {
+        // Node is wider than image relative to ratio -> Match width, crop height
+        drawW = node.width;
+        drawH = node.width / imgRatio;
+        offsetX = 0;
+        offsetY = (node.height - drawH) / 2; // Center vertically
+      } else {
+        // Node is taller than image relative to ratio -> Match height, crop width
+        drawH = node.height;
+        drawW = node.height * imgRatio;
+        offsetY = 0;
+        offsetX = (node.width - drawW) / 2; // Center horizontally
+      }
+
+      ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
+      
       ctx.restore();
     }
   });
