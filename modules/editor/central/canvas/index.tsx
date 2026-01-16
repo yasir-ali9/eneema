@@ -28,6 +28,8 @@ interface CanvasBoardProps {
   setCanvasRef: (ref: HTMLCanvasElement | null) => void;
   showGrid: boolean;
   processingNodeId: string | null;
+  viewport: Viewport; // Single line comment: Viewport now provided by props.
+  onSetViewport: (viewport: Viewport | ((prev: Viewport) => Viewport)) => void; // Single line comment: Viewport updates handled by parent.
 }
 
 /**
@@ -38,13 +40,14 @@ interface CanvasBoardProps {
 const CanvasBoard: React.FC<CanvasBoardProps> = ({ 
   nodes, toolMode, setToolMode, selectedNodeIds, lassoPath, 
   onSetLassoPath, brushStrokes, onSetBrushStrokes, onUpdateNodes, onPushHistory, onSelectNode, onSelectNodes, onDeleteNode, onDuplicateNodes, setCanvasRef, showGrid,
-  processingNodeId
+  processingNodeId,
+  viewport,
+  onSetViewport
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const offscreenRef = useRef<HTMLCanvasElement | null>(null);
   
-  const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, zoom: 1 });
   const [currentAction, setCurrentAction] = useState<EditorAction>(EditorAction.IDLE);
   const [lastMousePos, setLastMousePos] = useState<Point>({ x: 0, y: 0 });
   const [activeHandle, setActiveHandle] = useState<HandleType | null>(null);
@@ -120,7 +123,16 @@ const CanvasBoard: React.FC<CanvasBoardProps> = ({
         }
       }
       handleKeyboardShortcuts(e, setToolMode, () => { selectedNodeIds.forEach(onDeleteNode); }, onDuplicateNodes, () => {
-          onSetLassoPath([]); onSetBrushStrokes([]); onSelectNodes([]);
+          // Single line comment: Tiered Escape behavior - clear selections first, then switch tool on second press.
+          const hasActiveSelection = lassoPath.length > 0 || brushStrokes.length > 0 || selectedNodeIds.length > 0;
+          
+          if (hasActiveSelection) {
+            onSetLassoPath([]); 
+            onSetBrushStrokes([]); 
+            onSelectNodes([]);
+          } else if (toolMode !== ToolMode.SELECT) {
+            setToolMode(ToolMode.SELECT);
+          }
       });
     };
 
@@ -140,7 +152,7 @@ const CanvasBoard: React.FC<CanvasBoardProps> = ({
         window.removeEventListener('keydown', onKeyDown);
         window.removeEventListener('keyup', onKeyUp);
     };
-  }, [draw, toolMode, setToolMode, selectedNodeIds, onDeleteNode, onDuplicateNodes, onSetLassoPath, onSetBrushStrokes, onSelectNodes]);
+  }, [draw, toolMode, setToolMode, selectedNodeIds, onDeleteNode, onDuplicateNodes, onSetLassoPath, onSetBrushStrokes, onSelectNodes, lassoPath, brushStrokes]);
 
   useEffect(() => { draw(); }, [draw]);
 
@@ -150,12 +162,12 @@ const CanvasBoard: React.FC<CanvasBoardProps> = ({
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      if (e.ctrlKey || e.metaKey) setViewport(v => handleWheelZoom(e, v, el.getBoundingClientRect()));
-      else setViewport(v => applyPan(v, 0, -e.deltaY));
+      if (e.ctrlKey || e.metaKey) onSetViewport(v => handleWheelZoom(e, v, el.getBoundingClientRect()));
+      else onSetViewport(v => applyPan(v, 0, -e.deltaY));
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
-  }, []);
+  }, [onSetViewport]);
 
   // Global mouse up
   useEffect(() => {
@@ -201,7 +213,7 @@ const CanvasBoard: React.FC<CanvasBoardProps> = ({
     const dx = pos.x - lastMousePos.x;
     const dy = pos.y - lastMousePos.y;
     const selectedNodes = nodes.filter(n => selectedNodeIds.includes(n.id));
-    handleMouseMoveAction(worldPos, dx, dy, currentAction, viewport, selectedNodes, activeHandle, lassoPath, brushStrokes, onUpdateNodes, onSetLassoPath, onSetBrushStrokes, (pdx, pdy) => setViewport(v => applyPan(v, pdx, pdy)), (mPos) => setMarquee(prev => prev ? { ...prev, end: mPos } : null));
+    handleMouseMoveAction(worldPos, dx, dy, currentAction, viewport, selectedNodes, activeHandle, lassoPath, brushStrokes, onUpdateNodes, onSetLassoPath, onSetBrushStrokes, (pdx, pdy) => onSetViewport(v => applyPan(v, pdx, pdy)), (mPos) => setMarquee(prev => prev ? { ...prev, end: mPos } : null));
     setLastMousePos(pos);
   };
 
@@ -211,9 +223,7 @@ const CanvasBoard: React.FC<CanvasBoardProps> = ({
     <div ref={containerRef} className="flex-1 bg-bk-60 relative overflow-hidden" style={{ cursor: cursorStyle }}>
       <canvas ref={canvasRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} className="block w-full h-full" />
       <SelectionOverlay selectedNodes={nodes.filter(n => selectedNodeIds.includes(n.id))} viewport={viewport} onResizeStart={(h) => { setActiveHandle(h); setCurrentAction(EditorAction.RESIZING); }} />
-      <div className="absolute top-4 right-4 bg-bk-60/80 px-2 py-1 rounded text-[10px] text-fg-70 font-mono pointer-events-none border border-bd-50">
-        {Math.round(viewport.zoom * 100)}%
-      </div>
+      {/* Zoom indicator removed from here and moved to VerticalDock */}
     </div>
   );
 };

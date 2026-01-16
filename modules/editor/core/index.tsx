@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import LeftPanel from '../left-panel/index.tsx';
 import RightPanel from '../right-panel/index.tsx';
 import CentralArea from '../central/index.tsx';
-import { EditorNode, ToolMode, Point } from './types.ts';
+import { EditorNode, ToolMode, Point, Viewport } from './types.ts';
 import { DEFAULT_NODE_WIDTH } from './constants.ts';
 import { loadImage } from '../central/canvas/helpers/canvas.utils.ts';
 import { useEditorHistory } from './hooks/use-editor-history.ts';
@@ -25,6 +25,9 @@ const EditorRoot: React.FC = () => {
   const [toolMode, setToolMode] = useState<ToolMode>(ToolMode.SELECT);
   const [lassoPath, setLassoPath] = useState<Point[]>([]);
   const [brushStrokes, setBrushStrokes] = useState<Point[][]>([]);
+  
+  // Single line comment: Viewport state elevated to EditorRoot for sharing with sidebar components.
+  const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, zoom: 1 });
   
   const [processingTool, setProcessingTool] = useState<'detach' | 'place' | 'text' | 'remove-bg' | 'erase' | null>(null);
   // Single line comment: Explicitly track which node is shimmering to prevent shimmer loss on deselection.
@@ -184,12 +187,18 @@ const EditorRoot: React.FC = () => {
 
   return (
     <div className="w-full h-full flex overflow-hidden">
+      {/* Updated LeftPanel with injected Tool and History props for its new VerticalDock */}
       <LeftPanel 
         nodes={nodes} selectedNodeIds={selectedNodeIds} projectName={projectName}
         onProjectNameChange={setProjectName} onImportImage={addNode}
         onSelectNode={(id) => setSelectedNodeIds([id])} onDeleteNode={handleDeleteNode}
         showGrid={showGrid} onToggleGrid={() => setShowGrid(!showGrid)}
+        toolMode={toolMode} onSetToolMode={setToolMode}
+        onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo}
+        zoom={viewport.zoom} // Single line comment: Passing the zoom level to the LeftPanel for display in VerticalDock.
       />
+      
+      {/* Central workspace - dock props removed as they are now in LeftPanel */}
       <CentralArea 
         nodes={nodes} toolMode={toolMode} setToolMode={setToolMode}
         selectedNodeIds={selectedNodeIds} setSelectedNodeIds={setSelectedNodeIds}
@@ -199,8 +208,11 @@ const EditorRoot: React.FC = () => {
         onDeleteNode={handleDeleteNode} onDuplicateNodes={handleDuplicateNodes}
         isProcessing={!!processingTool} processingNodeId={activeProcessingNodeId}
         setCanvasRef={(ref) => { canvasRef.current = ref; }}
-        showGrid={showGrid} onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo}
+        showGrid={showGrid}
+        viewport={viewport} // Single line comment: Shared viewport passed to CentralArea.
+        onUpdateViewport={setViewport} // Single line comment: Propagating viewport changes back up.
       />
+      
       <RightPanel 
         nodes={nodes} selectedNodeIds={selectedNodeIds} onUpdateNodes={handleUpdateNodes}
         onPushHistory={() => pushHistory(nodes)} onDetach={handleDetach}

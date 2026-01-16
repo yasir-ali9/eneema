@@ -1,86 +1,28 @@
-import React from 'react';
-import { ToolMode } from '../../core/types.ts';
-import { MousePointer2, Lasso, Brush, Hand, Undo2, Redo2 } from 'lucide-react';
-import { Button } from '../../../../components/button/default.tsx';
-
-interface DockProps {
-  toolMode: ToolMode;
-  onSetToolMode: (mode: ToolMode) => void;
-  onUndo: () => void;
-  onRedo: () => void;
-  canUndo: boolean;
-  canRedo: boolean;
-}
+import React, { useState } from 'react';
+import { PromptInput } from '../../../../components/input/prompt.tsx';
 
 /**
  * Dock Component
- * Features core tool switchers and history navigation.
- * AI-specific actions have been moved to the Properties Panel for a cleaner workspace.
+ * The primary AI prompt entry point. Positioned centrally at the bottom of the workspace.
+ * Minimalist container that hosts the PromptInput primitive.
  */
-const Dock: React.FC<DockProps> = ({ 
-  toolMode, onSetToolMode, onUndo, onRedo, canUndo, canRedo 
-}) => {
-  return (
-    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50">
-      <div className="flex items-center gap-2 px-2 py-2 bg-bk-40/90 backdrop-blur-xl border border-bd-60 rounded-2xl shadow-2xl">
-        
-        {/* History Navigation */}
-        <div className="flex items-center gap-1 pr-2 border-r border-bd-50">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={onUndo}
-            disabled={!canUndo}
-            title="Undo (Ctrl+Z)"
-          >
-            <Undo2 size={16} />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={onRedo}
-            disabled={!canRedo}
-            title="Redo (Ctrl+Y)"
-          >
-            <Redo2 size={16} />
-          </Button>
-        </div>
+const Dock: React.FC = () => {
+  const [prompt, setPrompt] = useState("");
 
-        {/* Core Tool Selection */}
-        <div className="flex items-center gap-1">
-          <Button 
-            variant={toolMode === ToolMode.SELECT ? 'primary' : 'ghost'} 
-            size="icon" 
-            onClick={() => onSetToolMode(ToolMode.SELECT)}
-            title="Move Tool (V)"
-          >
-            <MousePointer2 size={18} />
-          </Button>
-          <Button 
-            variant={toolMode === ToolMode.PAN ? 'primary' : 'ghost'} 
-            size="icon" 
-            onClick={() => onSetToolMode(ToolMode.PAN)}
-            title="Hand Tool (H)"
-          >
-            <Hand size={18} />
-          </Button>
-          <Button 
-            variant={toolMode === ToolMode.LASSO ? 'primary' : 'ghost'} 
-            size="icon" 
-            onClick={() => onSetToolMode(ToolMode.LASSO)}
-            title="Lasso Tool (L)"
-          >
-            <Lasso size={18} />
-          </Button>
-          <Button 
-            variant={toolMode === ToolMode.BRUSH ? 'primary' : 'ghost'} 
-            size="icon" 
-            onClick={() => onSetToolMode(ToolMode.BRUSH)}
-            title="Brush Tool (B)"
-          >
-            <Brush size={18} />
-          </Button>
-        </div>
+  const handlePromptSubmit = (value: string) => {
+    console.log("AI Prompt Submitted:", value);
+    // Future: Connect to Gemini 3 generation service
+    setPrompt(""); 
+  };
+
+  return (
+    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-full max-w-[460px] px-4 z-50">
+      <div className="shadow-md rounded-2xl">
+        <PromptInput 
+          value={prompt}
+          onChange={setPrompt}
+          onSubmit={handlePromptSubmit}
+        />
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import React from 'react';
 import CanvasBoard from './canvas/index.tsx';
 import Dock from '../common/dock/index.tsx';
-import { EditorNode, ToolMode, Point } from '../core/types.ts';
+import { EditorNode, ToolMode, Point, Viewport } from '../core/types.ts';
 
 interface CentralAreaProps {
   nodes: EditorNode[];
@@ -21,19 +21,18 @@ interface CentralAreaProps {
   processingNodeId: string | null;
   setCanvasRef: (ref: HTMLCanvasElement | null) => void;
   showGrid: boolean;
-  onUndo: () => void;
-  onRedo: () => void;
-  canUndo: boolean;
-  canRedo: boolean;
+  viewport: Viewport; // Single line comment: Viewport received from core.
+  onUpdateViewport: (viewport: Viewport | ((prev: Viewport) => Viewport)) => void; // Single line comment: Viewport update handler.
 }
 
 /**
  * CentralArea Component
- * Wraps the canvas and floating dock tools.
+ * Wraps the canvas workspace and the new AI-integrated dock.
  */
 const CentralArea: React.FC<CentralAreaProps> = (props) => {
   return (
     <div className="flex-1 flex flex-col relative">
+      {/* The main visual workspace */}
       <CanvasBoard 
         nodes={props.nodes} 
         toolMode={props.toolMode} 
@@ -64,16 +63,12 @@ const CentralArea: React.FC<CentralAreaProps> = (props) => {
         setCanvasRef={props.setCanvasRef} 
         showGrid={props.showGrid}
         processingNodeId={props.processingNodeId}
+        viewport={props.viewport} // Single line comment: Pass shared viewport to canvas.
+        onSetViewport={props.onUpdateViewport} // Single line comment: Pass shared setter to canvas.
       />
       
-      <Dock 
-        toolMode={props.toolMode} 
-        onSetToolMode={props.setToolMode} 
-        onUndo={props.onUndo}
-        onRedo={props.onRedo}
-        canUndo={props.canUndo}
-        canRedo={props.canRedo}
-      />
+      {/* Unified AI Command Dock */}
+      <Dock />
     </div>
   );
 };

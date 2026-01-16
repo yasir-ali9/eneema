@@ -1,6 +1,6 @@
 import React from 'react';
 import { EditorNode } from '../../core/types.ts';
-import { Layers, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { Button } from '../../../../components/button/default.tsx';
 
 interface LayersPanelProps {
@@ -17,9 +17,9 @@ interface LayersPanelProps {
 const LayersPanel: React.FC<LayersPanelProps> = ({ nodes, selectedNodeIds, onSelectNode, onDeleteNode }) => {
   return (
     <div className="h-1/2 flex flex-col p-4">
-      {/* Panel Header - Font weight changed from bold to medium */}
-      <div className="text-[10px] font-medium uppercase tracking-widest text-fg-70 mb-4 flex items-center gap-2">
-        <Layers size={12} /> Layers
+      {/* Panel Header - Simplified title without icon and uppercase styling */}
+      <div className="text-[11px] font-medium text-fg-70 mb-4">
+        Layers
       </div>
       
       {/* List of nodes rendered as manageable layer items */}
@@ -65,7 +65,6 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ nodes, selectedNodeIds, onSel
         {/* State when no nodes are on the canvas */}
         {nodes.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center py-10 opacity-30">
-            <Layers size={20} className="mb-2 text-fg-70" />
             <div className="text-[9px] text-fg-70 uppercase tracking-[0.2em]">
               Empty Stack
             </div>

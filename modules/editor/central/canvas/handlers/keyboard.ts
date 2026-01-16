@@ -2,7 +2,7 @@ import { ToolMode } from '../../../core/types.ts';
 
 /**
  * Processes hotkeys for switching tools, deleting nodes, or duplicating them.
- * Added onCancel callback for resetting active selections.
+ * Guarded to prevent firing when user is typing in input fields.
  */
 export const handleKeyboardShortcuts = (
   e: KeyboardEvent,
@@ -11,6 +11,11 @@ export const handleKeyboardShortcuts = (
   onDuplicateSelected: () => void,
   onCancel: () => void
 ) => {
+  // Single line comment: Check if the focus is inside an input or textarea to avoid intercepting typed characters.
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+    return;
+  }
+
   const key = e.key.toLowerCase();
   const isMod = e.ctrlKey || e.metaKey;
   
@@ -22,18 +27,13 @@ export const handleKeyboardShortcuts = (
 
   // Actions
   if (key === 'delete' || key === 'backspace') {
-    // Only delete if not in an input field
-    if (!(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
-        onDeleteSelected();
-    }
+    onDeleteSelected();
   }
 
   // Duplicate shortcut (Ctrl+D / Cmd+D)
   if (isMod && key === 'd') {
-    if (!(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
-        e.preventDefault();
-        onDuplicateSelected();
-    }
+    e.preventDefault();
+    onDuplicateSelected();
   }
 
   // Cancel/Clear shortcut (Escape)

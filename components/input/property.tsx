@@ -14,6 +14,11 @@ interface PropertyInputProps {
   placeholder?: string;
 }
 
+/**
+ * PropertyInput Component
+ * Precision input for numeric properties with localized unit formatting and keyboard shortcuts.
+ * Updated with unified selection and placeholder styles.
+ */
 export const PropertyInput: React.FC<PropertyInputProps> = ({
   label,
   value,
@@ -30,12 +35,11 @@ export const PropertyInput: React.FC<PropertyInputProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const pendingChangeRef = useRef<number | null>(null);
 
-  // Format display value with unit inline
+  // Single line comment: Formats values for display, adding symbols like ° or % as needed.
   const formatDisplayValue = (val: number | string) => {
     const numVal = typeof val === "number" ? val : parseFloat(String(val));
     if (isNaN(numVal)) return "";
 
-    // Round to max 2 decimal places
     const rounded = Math.round(numVal * 100) / 100;
 
     if (unit === "°") return `${rounded}°`;
@@ -43,6 +47,7 @@ export const PropertyInput: React.FC<PropertyInputProps> = ({
     return String(rounded);
   };
 
+  // Single line comment: Keeps display text in sync with external state changes.
   useEffect(() => {
     if (!isFocused) {
       setInputValue(formatDisplayValue(value));
@@ -50,10 +55,9 @@ export const PropertyInput: React.FC<PropertyInputProps> = ({
     }
   }, [value, isFocused, unit]);
 
-  // Flush pending changes before component unmounts or value prop changes
+  // Single line comment: Commits any un-flushed changes when the component is unmounted.
   useEffect(() => {
     return () => {
-      // Cleanup: flush any pending changes
       if (
         pendingChangeRef.current !== null &&
         pendingChangeRef.current !== value
@@ -65,7 +69,6 @@ export const PropertyInput: React.FC<PropertyInputProps> = ({
 
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     setIsFocused(true);
-    // Auto-select all text on focus
     e.target.select();
   };
 
@@ -73,7 +76,6 @@ export const PropertyInput: React.FC<PropertyInputProps> = ({
     const newValue = e.target.value;
     setInputValue(newValue);
 
-    // Track pending change for property input (after validation)
     const cleanValue = newValue.replace(/[°%]/g, "").trim();
     const numValue = parseFloat(cleanValue);
     if (!isNaN(numValue)) {
@@ -86,7 +88,6 @@ export const PropertyInput: React.FC<PropertyInputProps> = ({
 
   const handleBlur = () => {
     setIsFocused(false);
-    // Remove unit symbols for parsing
     const cleanValue = inputValue.replace(/[°%]/g, "").trim();
     let numValue = parseFloat(cleanValue);
 
@@ -102,7 +103,6 @@ export const PropertyInput: React.FC<PropertyInputProps> = ({
 
     setInputValue(formatDisplayValue(numValue));
 
-    // Only call onChange if value actually changed (like DescriptiveInput)
     if (numValue !== value) {
       onChange(numValue);
     }
@@ -117,28 +117,23 @@ export const PropertyInput: React.FC<PropertyInputProps> = ({
       const cleanValue = inputValue.replace(/[°%]/g, "").trim();
       const currentValue = parseFloat(cleanValue) || 0;
       const newValue = currentValue + step;
-      const clampedValue =
-        max !== undefined ? Math.min(newValue, max) : newValue;
+      const clampedValue = max !== undefined ? Math.min(newValue, max) : newValue;
       setInputValue(formatDisplayValue(clampedValue));
       onChange(clampedValue);
-      pendingChangeRef.current = null; // Clear pending since we called onChange
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
       const cleanValue = inputValue.replace(/[°%]/g, "").trim();
       const currentValue = parseFloat(cleanValue) || 0;
       const newValue = currentValue - step;
-      const clampedValue =
-        min !== undefined ? Math.max(newValue, min) : newValue;
+      const clampedValue = min !== undefined ? Math.max(newValue, min) : newValue;
       setInputValue(formatDisplayValue(clampedValue));
       onChange(clampedValue);
-      pendingChangeRef.current = null; // Clear pending since we called onChange
     }
   };
 
   return (
     <div className="relative">
-      <div className="relative flex items-center bg-bk-40 rounded border border-bd-50 hover:border-bd-55 focus-within:border-bd-50 focus-within:shadow-[0_0_0_2px_rgb(var(--ac-02))] h-[26px]">
-        {/* Icon or Label */}
+      <div className="relative flex items-center bg-bk-40 rounded border border-bd-50 hover:border-bd-60 focus-within:border-bd-50 focus-within:shadow-[0_0_0_2px_rgb(var(--ac-02))] h-[26px]">
         {(icon || label) && (
           <div className="flex items-center justify-center shrink-0 pl-1.5 pr-1 pointer-events-none">
             {icon ? (
@@ -153,7 +148,6 @@ export const PropertyInput: React.FC<PropertyInputProps> = ({
           </div>
         )}
 
-        {/* Input */}
         <input
           ref={inputRef}
           type="text"
@@ -168,8 +162,9 @@ export const PropertyInput: React.FC<PropertyInputProps> = ({
             flex-1 h-full min-w-0
             bg-transparent text-fg-50 
             text-[11px] font-normal
-            transition-none!
             focus:outline-none
+            selection:bg-ac-02 selection:text-white
+            placeholder:text-fg-70
             ${icon || label ? "pl-0" : "pl-2"}
             pr-2
           `}

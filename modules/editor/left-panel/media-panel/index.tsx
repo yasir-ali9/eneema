@@ -1,6 +1,6 @@
 import React from 'react';
 import { PLACEHOLDER_IMAGES } from '../../core/constants.ts';
-import { Upload, Image as ImageIcon } from 'lucide-react';
+import { Upload } from 'lucide-react';
 
 interface MediaPanelProps {
   onImportImage: (src: string) => void;
@@ -22,9 +22,9 @@ const MediaPanel: React.FC<MediaPanelProps> = ({ onImportImage }) => {
 
   return (
     <div className="h-1/2 flex flex-col p-4 border-b border-bd-50">
-      {/* Header font weight changed from bold to medium */}
-      <div className="text-[10px] font-medium uppercase tracking-widest text-fg-70 mb-4 flex items-center gap-2">
-        <ImageIcon size={12} /> Media Library
+      {/* Header - Simplified title without icon and uppercase styling */}
+      <div className="text-[11px] font-medium text-fg-70 mb-4">
+        Media library
       </div>
       
       {/* Upload Box using design variables */}
