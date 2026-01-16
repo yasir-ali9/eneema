@@ -1,11 +1,13 @@
 import { GEMINI_IMAGE_MODEL, GEMINI_REASONING_MODEL } from '../../core/constants.ts';
 import { cleanBase64, resizeImageForApi } from '../../central/canvas/helpers/canvas.utils.ts';
 import { ProcessedImageResult } from '../../core/types.ts';
-import { ai } from '../../services/gemini.client.ts';
+import { ai, withRetry } from '../../services/gemini.client.ts';
 import { applyMaskToImage } from './detach.utils.ts';
+import { GenerateContentResponse } from "@google/genai";
 
 /**
  * AI object extraction pipeline.
+ * Each stage is protected by retry logic to handle server-side errors.
  */
 export const detachObjectWithGemini = async (
   imageBase64: string, // The original clean source
@@ -18,10 +20,9 @@ export const detachObjectWithGemini = async (
     const rawHighlightedFull = cleanBase64(await resizeImageForApi(fullContextBase64, 1024));
     const rawCroppedContext = cleanBase64(croppedContextBase64);
 
-    // Phase 1: Reasoning
-    // We use the zoomed-in crop so the model sees the object detail clearly.
-    // Updated prompt to handle multiple objects (plural/collective labels).
-    const reasoningResponse = await ai.models.generateContent({
+    // Stage 1: Reasoning - Identify what is being detached
+    // Explicitly typing the response as GenerateContentResponse to fix 'unknown' type error
+    const reasoningResponse: GenerateContentResponse = await withRetry(() => ai.models.generateContent({
       model: GEMINI_REASONING_MODEL,
       contents: {
         parts: [
@@ -29,10 +30,11 @@ export const detachObjectWithGemini = async (
           { inlineData: { mimeType: 'image/jpeg', data: rawCroppedContext } }
         ]
       }
-    });
+    }));
 
     let sceneInfo = { label: "object" };
     try {
+        // Accessing .text as a property on the typed response
         const text = reasoningResponse.text?.replace(/```json|```/g, '').trim() || "{}";
         const match = text.match(/\{.*\}/s);
         if (match) sceneInfo = JSON.parse(match[0]);
@@ -40,9 +42,9 @@ export const detachObjectWithGemini = async (
 
     console.log("Detected Object(s):", sceneInfo.label);
 
-    // Phase 2: Masking & Inpainting
-    // Masking: Updated to strictly follow the red highlight for ALL marked areas.
-    const maskPromise = ai.models.generateContent({
+    // Stage 2: Parallel Masking & Inpainting
+    // Providing GenerateContentResponse as a generic to withRetry for correct type inference
+    const maskPromise = withRetry<GenerateContentResponse>(() => ai.models.generateContent({
       model: GEMINI_IMAGE_MODEL,
       contents: {
         parts: [
@@ -51,10 +53,9 @@ export const detachObjectWithGemini = async (
           { inlineData: { mimeType: 'image/jpeg', data: rawHighlightedFull } }
         ]
       }
-    });
+    }));
 
-    // Inpainting: Updated to remove ALL marked objects.
-    const fillPromise = ai.models.generateContent({
+    const fillPromise = withRetry<GenerateContentResponse>(() => ai.models.generateContent({
       model: GEMINI_IMAGE_MODEL,
       contents: {
         parts: [
@@ -63,19 +64,22 @@ export const detachObjectWithGemini = async (
           { inlineData: { mimeType: 'image/jpeg', data: rawHighlightedFull } }
         ]
       }
-    });
+    }));
 
-    const [maskRes, fillRes] = await Promise.all([maskPromise, fillPromise]);
+    // Explicitly typing the unpacked array elements to avoid 'unknown' errors later
+    const [maskRes, fillRes]: [GenerateContentResponse, GenerateContentResponse] = await Promise.all([maskPromise, fillPromise]);
 
     let maskData = null, bgData = null;
-    maskRes.candidates?.[0]?.content?.parts.forEach(p => { 
-        if (p.inlineData) maskData = `data:image/png;base64,${p.inlineData.data}`; 
+    
+    // Safely iterate through candidate parts to find generated images in typed responses
+    maskRes.candidates?.[0]?.content?.parts.forEach(part => { 
+        if (part.inlineData) maskData = `data:image/png;base64,${part.inlineData.data}`; 
     });
-    fillRes.candidates?.[0]?.content?.parts.forEach(p => { 
-        if (p.inlineData) bgData = `data:image/png;base64,${p.inlineData.data}`; 
+    fillRes.candidates?.[0]?.content?.parts.forEach(part => { 
+        if (part.inlineData) bgData = `data:image/png;base64,${part.inlineData.data}`; 
     });
 
-    // Phase 3: Post-processing
+    // Final stage: Post-processing cutout
     let objData = null;
     if (maskData) {
         objData = await applyMaskToImage(imageBase64, maskData);

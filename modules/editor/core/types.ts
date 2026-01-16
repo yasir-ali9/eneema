@@ -1,4 +1,3 @@
-
 // 2D coordinate system
 export interface Point {
   x: number;
@@ -24,6 +23,8 @@ export interface EditorNode {
   rotation: number;
   opacity: number;
   name: string;
+  // AI Extracted text segments
+  textBlocks?: { id: string; text: string; originalText: string }[];
 }
 
 // Editor interaction modes (Tool selection)

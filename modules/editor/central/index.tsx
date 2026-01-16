@@ -20,6 +20,9 @@ interface CentralAreaProps {
   isProcessing: boolean;
   onDetach: () => void;
   onPlace: () => void;
+  onEditText: () => void;
+  hasTextBlocks: boolean;
+  hasTextChanged: boolean;
   canPlace: boolean;
   setCanvasRef: (ref: HTMLCanvasElement | null) => void;
   showGrid: boolean;
@@ -72,6 +75,9 @@ const CentralArea: React.FC<CentralAreaProps> = (props) => {
         onSetToolMode={props.setToolMode} 
         onDetach={props.onDetach} 
         onPlace={props.onPlace}
+        onEditText={props.onEditText}
+        hasTextBlocks={props.hasTextBlocks}
+        hasTextChanged={props.hasTextChanged}
         canPlace={props.canPlace}
         isProcessing={props.isProcessing} 
         hasSelection={props.lassoPath.length > 2 || props.brushStrokes.length > 0} 

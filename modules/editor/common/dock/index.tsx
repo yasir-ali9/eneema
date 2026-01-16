@@ -1,6 +1,6 @@
 import React from 'react';
 import { ToolMode } from '../../core/types.ts';
-import { MousePointer2, Lasso, Brush, Scissors, Hand, Undo2, Redo2, Stamp } from 'lucide-react';
+import { MousePointer2, Lasso, Brush, Scissors, Hand, Undo2, Redo2, Stamp, Type } from 'lucide-react';
 import { Button } from '../../../../components/button.tsx';
 
 interface DockProps {
@@ -8,9 +8,12 @@ interface DockProps {
   onSetToolMode: (mode: ToolMode) => void;
   onDetach: () => void;
   onPlace: () => void;
+  onEditText: () => void;
   isProcessing: boolean;
   hasSelection: boolean;
   hasActiveNode: boolean;
+  hasTextBlocks: boolean;
+  hasTextChanged: boolean;
   canPlace: boolean;
   onUndo: () => void;
   onRedo: () => void;
@@ -20,11 +23,11 @@ interface DockProps {
 
 /**
  * Dock Component
- * Updated with History controls and Move, Hand, Lasso, Brush tools.
+ * Updated with Text Editing capabilities and fixed Lucide icon import.
  */
 const Dock: React.FC<DockProps> = ({ 
-  toolMode, onSetToolMode, onDetach, onPlace, isProcessing, 
-  hasSelection, hasActiveNode, canPlace, onUndo, onRedo, canUndo, canRedo 
+  toolMode, onSetToolMode, onDetach, onPlace, onEditText, isProcessing, 
+  hasSelection, hasActiveNode, hasTextBlocks, hasTextChanged, canPlace, onUndo, onRedo, canUndo, canRedo 
 }) => {
   return (
     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50">
@@ -90,11 +93,29 @@ const Dock: React.FC<DockProps> = ({
 
         {/* AI action execution group */}
         <div className="flex items-center gap-1 pl-1">
+          {/* Contextual Text Edit Button */}
+          {hasActiveNode && (
+            <>
+              <Button
+                variant="accent"
+                onClick={onEditText}
+                disabled={isProcessing}
+                loading={isProcessing && (hasTextBlocks ? hasTextChanged : true)}
+                icon={<Type size={16} />}
+                className="h-10 px-4 font-semibold tracking-tight"
+                title={hasTextBlocks ? "Update image with new text" : "Extract text from image"}
+              >
+                {hasTextBlocks ? "Update Text" : "Edit Text"}
+              </Button>
+              <div className="w-px h-6 bg-bd-50 mx-1"></div>
+            </>
+          )}
+
           <Button 
             variant="accent" 
             onClick={onPlace} 
             disabled={!canPlace || isProcessing}
-            loading={isProcessing && canPlace} // Only show spinner on this button if placing
+            loading={isProcessing && canPlace} 
             icon={<Stamp size={16} />}
             className="h-10 px-4 font-semibold tracking-tight"
             title="Place Object (Smart Blend)"
@@ -106,7 +127,7 @@ const Dock: React.FC<DockProps> = ({
             variant="accent" 
             onClick={onDetach} 
             disabled={!hasActiveNode || !hasSelection || isProcessing}
-            loading={isProcessing && hasSelection} // Only show spinner on this button if detaching
+            loading={isProcessing && hasSelection} 
             icon={<Scissors size={16} />}
             className="h-10 px-4 font-semibold tracking-tight"
           >

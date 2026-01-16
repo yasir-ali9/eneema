@@ -1,6 +1,7 @@
 import React from 'react';
 import { EditorNode } from '../../core/types.ts';
 import { LayoutSection } from './layout/index.tsx';
+import { TextSection } from './text/index.tsx';
 
 interface PropertiesPanelProps {
   selectedNodes: EditorNode[];
@@ -17,7 +18,7 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   onUpdateNodes,
   onPushHistory 
 }) => {
-  // If nothing is selected, we show nothing (handled by parent or empty state here)
+  // If nothing is selected, we show nothing
   if (selectedNodes.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-[10px] uppercase text-fg-70 tracking-tighter">
@@ -30,8 +31,11 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   const activeNode = selectedNodes[0];
 
   const handleNodeUpdate = (changes: Partial<EditorNode>) => {
-    // 1. Commit current state to history before applying changes
-    onPushHistory();
+    // 1. Commit current state to history before applying changes (only for layout/transform)
+    // For text typing, we might want to debouncing history, but for simplicity:
+    if (Object.keys(changes).some(k => ['x','y','width','height','rotation','opacity'].includes(k))) {
+       onPushHistory();
+    }
 
     // 2. Apply changes to all selected nodes (supporting multi-edit)
     const updatedNodes = selectedNodes.map(node => ({
@@ -45,7 +49,8 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-bk-50">
       <LayoutSection node={activeNode} onUpdate={handleNodeUpdate} />
-      {/* Additional sections (Effects, AI, etc.) can be added here */}
+      {/* AI Text Section */}
+      <TextSection node={activeNode} onUpdate={handleNodeUpdate} />
     </div>
   );
 };

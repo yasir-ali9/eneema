@@ -1,10 +1,12 @@
 import { GEMINI_IMAGE_MODEL } from '../../core/constants.ts';
 import { cleanBase64, resizeImageForApi } from '../../central/canvas/helpers/canvas.utils.ts';
-import { ai } from '../../services/gemini.client.ts';
+import { ai, withRetry } from '../../services/gemini.client.ts';
+import { GenerateContentResponse } from "@google/genai";
 
 /**
  * Intelligent "Place" Tool.
  * Uses Gemini 3 Pro Image to REGENERATE the object within the masked area.
+ * Wrapped with retry logic to ensure stability.
  */
 export const placeObjectWithGemini = async (
   compositeBase64: string,
@@ -14,7 +16,8 @@ export const placeObjectWithGemini = async (
     const rawComposite = cleanBase64(await resizeImageForApi(compositeBase64, 1024));
     const rawMask = cleanBase64(await resizeImageForApi(maskBase64, 1024));
 
-    const response = await ai.models.generateContent({
+    // Typing response as GenerateContentResponse to fix 'unknown' error when accessing .candidates
+    const response: GenerateContentResponse = await withRetry(() => ai.models.generateContent({
       model: GEMINI_IMAGE_MODEL,
       contents: {
         parts: [
@@ -23,11 +26,12 @@ export const placeObjectWithGemini = async (
           { inlineData: { mimeType: 'image/png', data: rawMask } }
         ]
       }
-    });
+    }));
 
     let resultImage = null;
-    response.candidates?.[0]?.content?.parts.forEach(p => {
-        if (p.inlineData) resultImage = `data:image/png;base64,${p.inlineData.data}`;
+    // Safely iterate through candidates using the typed response object
+    response.candidates?.[0]?.content?.parts.forEach(part => {
+        if (part.inlineData) resultImage = `data:image/png;base64,${part.inlineData.data}`;
     });
 
     if (!resultImage) throw new Error("No image generated");
