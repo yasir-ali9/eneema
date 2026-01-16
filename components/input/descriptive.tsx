@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useState, useEffect, useRef } from "react";
 
 interface DescriptiveInputProps {
@@ -12,11 +10,15 @@ interface DescriptiveInputProps {
   className?: string;
 }
 
+/**
+ * DescriptiveInput Component
+ * Multi-line text input that auto-expands based on content.
+ */
 export const DescriptiveInput: React.FC<DescriptiveInputProps> = ({
   value,
   onChange,
   placeholder,
-  rows = 3,
+  rows = 1, // Single line comment: Defaulted to 1 to support compact single-line text segments.
   maxLength,
   disabled = false,
   className = "",
@@ -26,7 +28,7 @@ export const DescriptiveInput: React.FC<DescriptiveInputProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pendingChangeRef = useRef<string | null>(null);
 
-  // Update internal value when prop changes (but not when focused)
+  // Single line comment: Sync internal state with external value changes when not editing.
   useEffect(() => {
     if (!isFocused) {
       setInputValue(value);
@@ -34,10 +36,9 @@ export const DescriptiveInput: React.FC<DescriptiveInputProps> = ({
     }
   }, [value, isFocused]);
 
-  // Flush pending changes before component unmounts or value prop changes
+  // Single line comment: Flush any uncommitted changes if the component or value prop changes.
   useEffect(() => {
     return () => {
-      // Cleanup: flush any pending changes
       if (
         pendingChangeRef.current !== null &&
         pendingChangeRef.current !== value
@@ -47,19 +48,19 @@ export const DescriptiveInput: React.FC<DescriptiveInputProps> = ({
     };
   }, [value, onChange]);
 
-  // Auto-resize textarea based on content (like PromptInput)
+  // Single line comment: Dynamic height adjustment logic to fit text content exactly.
   useEffect(() => {
     if (textareaRef.current) {
-      // Reset height to auto to get the correct scrollHeight
+      // Reset height to calculate true scroll height correctly.
       textareaRef.current.style.height = "auto";
 
       const scrollHeight = textareaRef.current.scrollHeight;
-      const maxHeight = 144; // max-h-[144px]
+      const maxHeight = 144; 
 
-      // Set height to scrollHeight
+      // Set height based on content while respecting max bounds.
       textareaRef.current.style.height = `${scrollHeight}px`;
 
-      // Only show scrollbar when content exceeds max height
+      // Enable scrollbars only when content exceeds maximum height limit.
       if (scrollHeight > maxHeight) {
         textareaRef.current.style.overflowY = "auto";
       } else {
@@ -74,21 +75,13 @@ export const DescriptiveInput: React.FC<DescriptiveInputProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
-
-    // Respect maxLength if provided
-    if (maxLength && newValue.length > maxLength) {
-      return;
-    }
-
+    if (maxLength && newValue.length > maxLength) return;
     setInputValue(newValue);
-    // Track pending change
     pendingChangeRef.current = newValue;
   };
 
   const handleBlur = () => {
     setIsFocused(false);
-
-    // Only call onChange if value actually changed
     if (inputValue !== value) {
       onChange(inputValue);
       pendingChangeRef.current = null;
@@ -96,7 +89,6 @@ export const DescriptiveInput: React.FC<DescriptiveInputProps> = ({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Allow Ctrl+Enter or Cmd+Enter to trigger blur (save)
     if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
       e.preventDefault();
       e.currentTarget.blur();
@@ -115,22 +107,16 @@ export const DescriptiveInput: React.FC<DescriptiveInputProps> = ({
         placeholder={placeholder}
         rows={rows}
         disabled={disabled}
-        className="descriptive-input w-full px-2.5 py-2 text-[11px] bg-bk-40 text-fg-50 rounded border border-bd-50 focus:outline-none focus:border-bd-50 focus:shadow-[0_0_0_2px_rgb(var(--ac-02))] resize-none placeholder:text-fg-70 disabled:opacity-50 disabled:cursor-not-allowed max-h-[144px] overflow-y-hidden selection:bg-ac-02 selection:text-white"
-        style={{ minHeight: `${rows * 16 + 16}px` }}
+        className="descriptive-input w-full px-2.5 py-1.5 text-[11px] bg-bk-40 text-fg-50 rounded border border-bd-50 focus:outline-none focus:border-bd-50 focus:shadow-[0_0_0_2px_rgb(var(--ac-02))] resize-none placeholder:text-fg-70 disabled:opacity-50 disabled:cursor-not-allowed max-h-[144px] overflow-y-hidden selection:bg-ac-02 selection:text-white"
+        style={{ 
+          // Single line comment: Calculate minimum height based on line height (approx 16px) and padding.
+          minHeight: `${rows * 16 + 12}px` 
+        }}
       />
 
-      {/* Character counter - only show if maxLength is provided and field is focused */}
       {maxLength && isFocused && (
-        <div className="absolute bottom-2 right-2.5 pointer-events-none">
-          <span
-            className={`text-[9px] ${
-              inputValue.length > maxLength * 0.9
-                ? inputValue.length >= maxLength
-                  ? "text-red-500"
-                  : "text-yellow-500"
-                : "text-fg-70"
-            }`}
-          >
+        <div className="absolute bottom-1.5 right-2.5 pointer-events-none">
+          <span className={`text-[9px] ${inputValue.length > maxLength * 0.9 ? (inputValue.length >= maxLength ? "text-red-500" : "text-yellow-500") : "text-fg-70"}`}>
             {inputValue.length}/{maxLength}
           </span>
         </div>

@@ -38,7 +38,6 @@ export const TextSection: React.FC<TextSectionProps> = ({
   return (
     <div className="flex flex-col gap-3 p-4 border-b border-bd-50">
       <div className="flex items-center gap-2 mb-1">
-        {/* Removed text icon per user request */}
         <h3 className="text-[10px] font-medium text-fg-70 tracking-wider">Text Content</h3>
       </div>
       
@@ -49,7 +48,7 @@ export const TextSection: React.FC<TextSectionProps> = ({
               value={block.text} 
               onChange={(val) => handleTextChange(block.id, val)}
               placeholder="Enter new text..."
-              rows={2}
+              rows={1} // Single line comment: Start at 1 line for a cleaner look with short text.
             />
           </div>
         ))}

@@ -35,6 +35,17 @@ const EditorRoot: React.FC = () => {
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  // Single line comment: Blocks native browser zoom (Ctrl/Cmd + Wheel) everywhere to prevent the UI from scaling unexpectedly.
+  useEffect(() => {
+    const handleGlobalWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('wheel', handleGlobalWheel, { passive: false });
+    return () => window.removeEventListener('wheel', handleGlobalWheel);
+  }, []);
+
   useEffect(() => {
     const checkKey = async () => {
       // @ts-ignore
