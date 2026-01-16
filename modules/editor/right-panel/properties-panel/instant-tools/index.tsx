@@ -1,13 +1,14 @@
 import React from 'react';
-import { Scissors, Stamp, Type } from 'lucide-react';
+import { Scissors, Stamp, Type, Eraser } from 'lucide-react';
 import { ActionButton } from '../../../../../components/button/action.tsx';
 
 interface InstantToolsProps {
   onDetach: () => void;
   onPlace: () => void;
+  onRemoveBg: () => void;
   onEditText: () => void;
   isProcessing: boolean;
-  processingTool: 'detach' | 'place' | 'text' | null;
+  processingTool: 'detach' | 'place' | 'text' | 'remove-bg' | null;
   hasSelection: boolean;
   hasActiveNode: boolean;
   hasTextBlocks: boolean;
@@ -18,11 +19,11 @@ interface InstantToolsProps {
 /**
  * InstantTools Section
  * Centralizes AI action buttons in the Properties Panel.
- * Now supports granular loading states for each individual action.
  */
 export const InstantTools: React.FC<InstantToolsProps> = ({
   onDetach,
   onPlace,
+  onRemoveBg,
   onEditText,
   isProcessing,
   processingTool,
@@ -62,7 +63,7 @@ export const InstantTools: React.FC<InstantToolsProps> = ({
           title={hasTextBlocks ? "Regenerate image with modified text" : "Scan and extract text layers"}
         />
 
-        {/* Row 2: Placement AI */}
+        {/* Row 2: Placement and Remove BG AI */}
         <ActionButton
           label="Place"
           icon={<Stamp size={14} />}
@@ -72,9 +73,16 @@ export const InstantTools: React.FC<InstantToolsProps> = ({
           colSpan={1}
           title="Seamlessly blend foreground into overlapping background"
         />
-        
-        {/* Empty space to maintain grid alignment */}
-        <div className="col-span-2 pointer-events-none opacity-0" />
+
+        <ActionButton
+          label="Remove BG"
+          icon={<Eraser size={14} />}
+          onClick={onRemoveBg}
+          disabled={isProcessing && processingTool !== 'remove-bg'}
+          loading={processingTool === 'remove-bg'}
+          colSpan={2}
+          title="AI-powered background removal"
+        />
       </div>
     </div>
   );

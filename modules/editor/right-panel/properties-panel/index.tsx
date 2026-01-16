@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { EditorNode } from '../../core/types.ts';
 import { LayoutSection } from './layout/index.tsx';
@@ -12,9 +11,10 @@ interface PropertiesPanelProps {
   // AI Tool Actions
   onDetach: () => void;
   onPlace: () => void;
+  onRemoveBg: () => void;
   onEditText: () => void;
   isProcessing: boolean;
-  processingTool: 'detach' | 'place' | 'text' | null;
+  processingTool: 'detach' | 'place' | 'text' | 'remove-bg' | null;
   hasSelection: boolean;
   hasTextBlocks: boolean;
   hasTextChanged: boolean;
@@ -32,6 +32,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   onPushHistory,
   onDetach,
   onPlace,
+  onRemoveBg,
   onEditText,
   isProcessing,
   processingTool,
@@ -77,6 +78,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
       <InstantTools 
         onDetach={onDetach}
         onPlace={onPlace}
+        onRemoveBg={onRemoveBg}
         onEditText={onEditText}
         isProcessing={isProcessing}
         processingTool={processingTool}

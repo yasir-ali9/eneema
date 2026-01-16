@@ -9,6 +9,7 @@ import { useEditorHistory } from './hooks/use-editor-history.ts';
 import { DetachTool } from '../tools/detach/index.ts';
 import { PlaceTool } from '../tools/place/index.ts';
 import { EditTextTool } from '../tools/edit-text/index.ts';
+import { RemoveBgTool } from '../tools/remove-bg/index.ts';
 import { ToolExecutionContext } from '../tools/types.ts';
 import { Button } from '../../../components/button/default.tsx';
 import { Key } from 'lucide-react';
@@ -26,7 +27,7 @@ const EditorRoot: React.FC = () => {
   const [brushStrokes, setBrushStrokes] = useState<Point[][]>([]);
   
   // Track which specific tool is currently processing
-  const [processingTool, setProcessingTool] = useState<'detach' | 'place' | 'text' | null>(null);
+  const [processingTool, setProcessingTool] = useState<'detach' | 'place' | 'text' | 'remove-bg' | null>(null);
   
   const [projectName, setProjectName] = useState("Gemini 3 Project");
   const [showGrid, setShowGrid] = useState(false);
@@ -171,6 +172,18 @@ const EditorRoot: React.FC = () => {
     }
   };
 
+  // Executes the AI Background Removal logic
+  const handleRemoveBg = async () => {
+    setProcessingTool('remove-bg');
+    try {
+      await RemoveBgTool.execute(toolContext);
+    } catch (err) {
+      console.error("AI Remove BG Error:", err);
+    } finally {
+      setProcessingTool(null);
+    }
+  };
+
   // Executes AI Text extraction or updates based on state
   const handleEditText = async () => {
     setProcessingTool('text');
@@ -251,6 +264,7 @@ const EditorRoot: React.FC = () => {
         onPushHistory={() => pushHistory(nodes)}
         onDetach={handleDetach}
         onPlace={handlePlace}
+        onRemoveBg={handleRemoveBg}
         onEditText={handleEditText}
         isProcessing={!!processingTool}
         processingTool={processingTool}
