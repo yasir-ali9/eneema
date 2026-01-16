@@ -38,7 +38,8 @@ export const InstantTools: React.FC<InstantToolsProps> = ({
   return (
     <div className="flex flex-col gap-3 p-4 border-b border-bd-50">
       <div className="flex items-center justify-between">
-        <h3 className="text-[10px] font-bold text-fg-70 uppercase tracking-wider">Instant Tools</h3>
+        {/* Header font weight changed from bold to medium */}
+        <h3 className="text-[10px] font-medium text-fg-70 tracking-wider">Instant Tools</h3>
       </div>
 
       <div className="grid grid-cols-3 gap-2">

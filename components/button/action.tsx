@@ -13,7 +13,8 @@ interface ActionButtonProps {
 
 /**
  * ActionButton Component
- * Refined to use a shimmer effect instead of a spinner for a more modern AI-editor feel.
+ * Features a shimmer effect during AI processing.
+ * Reduced prominence during processing state by using muted colors and subtle opacity.
  */
 export const ActionButton: React.FC<ActionButtonProps> = ({
   label,
@@ -35,6 +36,7 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
   return (
     <button
       onClick={onClick}
+      // Button is disabled functionally during loading
       disabled={disabled || loading}
       title={title}
       className={`
@@ -45,7 +47,8 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
         transition-all duration-150
         hover:bg-bk-30 hover:border-bd-60
         active:scale-[0.98]
-        disabled:opacity-40 disabled:pointer-events-none
+        ${disabled && !loading ? 'opacity-40' : 'opacity-100'} 
+        disabled:pointer-events-none
         focus:outline-none focus:ring-1 focus:ring-ac-01/30
         overflow-hidden select-none
         ${className}
@@ -58,18 +61,19 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
         </div>
       )}
 
-      {/* Button Content - Remains visible but muted when loading */}
-      <div className={`relative z-10 flex items-center h-full w-full ${loading ? 'opacity-50' : ''}`}>
+      {/* Button Content - Muted dominance during loading as requested */}
+      <div className={`relative z-10 flex items-center h-full w-full transition-opacity duration-300 ${loading ? 'opacity-70' : 'opacity-100'}`}>
         {icon && (
           <div className="flex items-center justify-center shrink-0 pl-1.5 pr-1 pointer-events-none">
-            <span className="text-fg-60 flex items-center justify-center w-[14px]">
+            <span className={`${loading ? 'text-fg-70' : 'text-fg-60'} flex items-center justify-center w-[14px] transition-colors`}>
               {icon}
             </span>
           </div>
         )}
         
         <span className={`
-          truncate text-fg-50 text-[11px] font-normal
+          truncate ${loading ? 'text-fg-70 font-medium' : 'text-fg-50 font-normal'} text-[11px]
+          transition-colors
           ${icon ? 'pl-0' : 'pl-2'}
           pr-2
         `}>

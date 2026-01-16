@@ -17,8 +17,8 @@ interface LayersPanelProps {
 const LayersPanel: React.FC<LayersPanelProps> = ({ nodes, selectedNodeIds, onSelectNode, onDeleteNode }) => {
   return (
     <div className="h-1/2 flex flex-col p-4">
-      {/* Panel Header - Kept as "Layers" for high-level user orientation */}
-      <div className="text-[10px] font-bold uppercase tracking-widest text-fg-70 mb-4 flex items-center gap-2">
+      {/* Panel Header - Font weight changed from bold to medium */}
+      <div className="text-[10px] font-medium uppercase tracking-widest text-fg-70 mb-4 flex items-center gap-2">
         <Layers size={12} /> Layers
       </div>
       

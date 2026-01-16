@@ -22,7 +22,8 @@ const MediaPanel: React.FC<MediaPanelProps> = ({ onImportImage }) => {
 
   return (
     <div className="h-1/2 flex flex-col p-4 border-b border-bd-50">
-      <div className="text-[10px] font-bold uppercase tracking-widest text-fg-70 mb-4 flex items-center gap-2">
+      {/* Header font weight changed from bold to medium */}
+      <div className="text-[10px] font-medium uppercase tracking-widest text-fg-70 mb-4 flex items-center gap-2">
         <ImageIcon size={12} /> Media Library
       </div>
       

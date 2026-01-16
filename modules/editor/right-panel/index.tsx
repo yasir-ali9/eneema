@@ -46,7 +46,8 @@ const RightPanel: React.FC<RightPanelProps> = ({
 
   return (
     <div className="w-72 bg-bk-50 border-l border-bd-50 flex flex-col h-full z-20">
-      <div className="flex items-center gap-2 p-4 border-b border-bd-50 text-[10px] font-bold uppercase tracking-widest text-fg-70">
+      {/* Header title weight changed from bold to medium */}
+      <div className="flex items-center gap-2 p-4 border-b border-bd-50 text-[10px] font-medium tracking-widest text-fg-70">
         <Settings2 size={12} /> Properties
       </div>
       

@@ -26,7 +26,8 @@ export const TextSection: React.FC<TextSectionProps> = ({ node, onUpdate }) => {
     <div className="flex flex-col gap-3 p-4 border-b border-bd-50">
       <div className="flex items-center gap-2 mb-1">
         <Type size={12} className="text-fg-70" />
-        <h3 className="text-[10px] font-bold text-fg-70 uppercase tracking-wider">Text Content</h3>
+        {/* Header font weight changed from bold to medium */}
+        <h3 className="text-[10px] font-medium text-fg-70 tracking-wider">Text Content</h3>
       </div>
       
       <div className="space-y-3">
