@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { EditorNode } from '../../core/types.ts';
 import { LayoutSection } from './layout/index.tsx';
@@ -23,7 +24,7 @@ interface PropertiesPanelProps {
 /**
  * PropertiesPanel Component
  * Displays and edits properties of the selected node(s).
- * Now includes "Instant Tools" for AI-powered actions.
+ * Layout order: Layout -> Instant Tools -> Text Content.
  */
 export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ 
   selectedNodes, 
@@ -39,7 +40,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   hasTextChanged,
   canPlace
 }) => {
-  // If nothing is selected, we show nothing
+  // If nothing is selected, we show a placeholder message
   if (selectedNodes.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-[10px] uppercase text-fg-70 tracking-tighter">
@@ -51,13 +52,14 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   // We currently focus on the primary selected node for value editing
   const activeNode = selectedNodes[0];
 
+  // Helper to synchronize updates across all selected nodes
   const handleNodeUpdate = (changes: Partial<EditorNode>) => {
-    // 1. Commit current state to history before applying changes (only for layout/transform)
+    // Commit current state to history before applying changes (only for layout/transform properties)
     if (Object.keys(changes).some(k => ['x','y','width','height','rotation','opacity'].includes(k))) {
        onPushHistory();
     }
 
-    // 2. Apply changes to all selected nodes (supporting multi-edit)
+    // Apply changes to all selected nodes (supporting multi-edit functionality)
     const updatedNodes = selectedNodes.map(node => ({
       ...node,
       ...changes
@@ -68,7 +70,10 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
 
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-bk-50">
-      {/* AI Actions at the top for high visibility */}
+      {/* Transformation and Layout controls - Now at the top */}
+      <LayoutSection node={activeNode} onUpdate={handleNodeUpdate} />
+
+      {/* AI Actions - Moved below Layout section as requested */}
       <InstantTools 
         onDetach={onDetach}
         onPlace={onPlace}
@@ -81,11 +86,8 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         hasTextChanged={hasTextChanged}
         canPlace={canPlace}
       />
-
-      {/* Transformation and Layout controls */}
-      <LayoutSection node={activeNode} onUpdate={handleNodeUpdate} />
       
-      {/* Dynamic text blocks extracted by AI */}
+      {/* Dynamic text blocks extracted by AI - Remains at bottom */}
       <TextSection node={activeNode} onUpdate={handleNodeUpdate} />
     </div>
   );
