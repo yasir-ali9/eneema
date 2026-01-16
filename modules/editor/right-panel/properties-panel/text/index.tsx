@@ -1,20 +1,33 @@
 import React from 'react';
 import { EditorNode } from '../../../../core/types.ts';
 import { DescriptiveInput } from '../../../../../components/input/descriptive.tsx';
-import { Type } from 'lucide-react';
+import { ActionButton } from '../../../../../components/button/action.tsx';
 
 interface TextSectionProps {
   node: EditorNode;
   onUpdate: (updates: Partial<EditorNode>) => void;
+  onUpdateText: () => void;
+  isProcessing: boolean;
+  processingTool: string | null;
+  hasTextChanged: boolean;
 }
 
 /**
  * TextSection Component
  * Renders editable fields for AI-extracted text layers.
+ * Features an integrated "Update Text" button for immediate regeneration.
  */
-export const TextSection: React.FC<TextSectionProps> = ({ node, onUpdate }) => {
+export const TextSection: React.FC<TextSectionProps> = ({ 
+  node, 
+  onUpdate, 
+  onUpdateText, 
+  isProcessing, 
+  processingTool, 
+  hasTextChanged 
+}) => {
   if (!node.textBlocks || node.textBlocks.length === 0) return null;
 
+  // Single line comment: Updates local text block state before AI trigger
   const handleTextChange = (id: string, newText: string) => {
     const updatedBlocks = node.textBlocks!.map(b => 
       b.id === id ? { ...b, text: newText } : b
@@ -25,8 +38,7 @@ export const TextSection: React.FC<TextSectionProps> = ({ node, onUpdate }) => {
   return (
     <div className="flex flex-col gap-3 p-4 border-b border-bd-50">
       <div className="flex items-center gap-2 mb-1">
-        <Type size={12} className="text-fg-70" />
-        {/* Header font weight changed from bold to medium */}
+        {/* Removed text icon per user request */}
         <h3 className="text-[10px] font-medium text-fg-70 tracking-wider">Text Content</h3>
       </div>
       
@@ -42,6 +54,20 @@ export const TextSection: React.FC<TextSectionProps> = ({ node, onUpdate }) => {
           </div>
         ))}
       </div>
+
+      {/* Update Button - Appears when changes are detected */}
+      {hasTextChanged && (
+        <div className="pt-2">
+          <ActionButton
+            label="Update Text"
+            onClick={onUpdateText}
+            loading={processingTool === 'text'}
+            disabled={isProcessing && processingTool !== 'text'}
+            colSpan={3}
+            title="Regenerate image with modified text content"
+          />
+        </div>
+      )}
     </div>
   );
 };

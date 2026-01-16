@@ -12,16 +12,12 @@ export const execute = async (ctx: ToolExecutionContext): Promise<void> => {
 
     if (selectedNodeIds.length !== 1) return;
 
-    const activeNode = nodes.find(n => n.id === selectedNodeIds[0]);
+    const nodeId = selectedNodeIds[0];
+    const activeNode = nodes.find(n => n.id === nodeId);
     if (!activeNode) return;
 
-    // 1. Get the binary mask from Gemini
     const maskData = await removeBackgroundWithGemini(activeNode.src);
-    
-    // 2. Apply the mask to the original image
     const transparentSrc = await applyMaskToImage(activeNode.src, maskData);
-    
-    // 3. Auto-crop the result to remove empty transparent space
     const cropInfo = await cropTransparentImage(transparentSrc);
     
     pushHistory(nodes);
@@ -40,7 +36,6 @@ export const execute = async (ctx: ToolExecutionContext): Promise<void> => {
         const scaleX = activeNode.width / img.width;
         const scaleY = activeNode.height / img.height;
         
-        // Adjust position based on crop offset
         finalNodeData = {
             x: activeNode.x + (cropInfo.x * scaleX),
             y: activeNode.y + (cropInfo.y * scaleY),
@@ -49,14 +44,13 @@ export const execute = async (ctx: ToolExecutionContext): Promise<void> => {
         };
     }
 
-    // 4. Update the node in place
-    const updatedNodes = nodes.map(n => n.id === activeNode.id ? {
+    // Single line comment: Atomically update node properties while preserving concurrent global state changes.
+    setNodes(prevNodes => prevNodes.map(n => n.id === nodeId ? {
         ...n,
         src: finalSrc,
         ...finalNodeData,
         name: `${n.name} (Cutout)`
-    } : n);
+    } : n));
 
-    setNodes(updatedNodes);
     setToolMode(ToolMode.SELECT);
 };

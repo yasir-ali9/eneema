@@ -3,45 +3,37 @@ import { EditorNode } from '../types.ts';
 
 /**
  * Custom hook for managing undo/redo logic for the Editor nodes.
- * Provides granular control over when a state is committed to history.
+ * Provides support for functional updates to handle concurrent state changes.
  */
 export function useEditorHistory(initialNodes: EditorNode[]) {
-  // Past states stack
   const [past, setPast] = useState<EditorNode[][]>([]);
-  // Current state of nodes (the source of truth for the UI)
   const [present, setPresent] = useState<EditorNode[]>(initialNodes);
-  // Future states stack (for redo functionality)
   const [future, setFuture] = useState<EditorNode[][]>([]);
 
-  // Updates the current present state without recording history (Transient)
-  const setNodes = useCallback((newNodes: EditorNode[]) => {
-    setPresent(newNodes);
+  // Single line comment: Supports both direct array updates and functional updaters.
+  const setNodes = useCallback((updater: EditorNode[] | ((prev: EditorNode[]) => EditorNode[])) => {
+    setPresent(updater);
   }, []);
 
-  // Explicitly commits a snapshot to the history stack
+  // Single line comment: Commits current state to history and clears future redo steps.
   const pushHistory = useCallback((snapshot: EditorNode[]) => {
     setPast(prevPast => [...prevPast, snapshot]);
-    // When history is pushed, future (redo) states are invalidated
     setFuture([]);
   }, []);
 
-  // Function to undo the last action
   const undo = useCallback(() => {
     if (past.length === 0) return;
     const previous = past[past.length - 1];
     const newPast = past.slice(0, past.length - 1);
-    // Move current state to future for redoing
     setFuture(prevFuture => [present, ...prevFuture]);
     setPresent(previous);
     setPast(newPast);
   }, [past, present]);
 
-  // Function to redo an undone action
   const redo = useCallback(() => {
     if (future.length === 0) return;
     const next = future[0];
     const newFuture = future.slice(1);
-    // Move current state back to past
     setPast(prevPast => [...prevPast, present]);
     setPresent(next);
     setFuture(newFuture);

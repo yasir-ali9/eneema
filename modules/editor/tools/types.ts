@@ -1,4 +1,3 @@
-
 import { EditorNode, Point, ToolMode } from '../core/types.ts';
 
 /**
@@ -13,7 +12,8 @@ export interface ToolExecutionContext {
   
   // State Mutators
   pushHistory: (snapshot: EditorNode[]) => void;
-  setNodes: (nodes: EditorNode[]) => void;
+  // Single line comment: Updated signature to allow (prevNodes) => nextNodes updates.
+  setNodes: (updater: EditorNode[] | ((prev: EditorNode[]) => EditorNode[])) => void;
   setSelectedNodeIds: (ids: string[]) => void;
   setLassoPath: (path: Point[]) => void;
   setBrushStrokes: (strokes: Point[][]) => void;

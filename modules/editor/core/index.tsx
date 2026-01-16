@@ -99,8 +99,9 @@ const EditorRoot: React.FC = () => {
   const addNode = async (src: string) => {
     try {
       const img = await loadImage(src);
+      const newNodeId = crypto.randomUUID();
       const node: EditorNode = { 
-          id: crypto.randomUUID(), 
+          id: newNodeId, 
           type: 'image', 
           src, 
           x: 100, y: 100, 
@@ -110,8 +111,23 @@ const EditorRoot: React.FC = () => {
           name: `Node ${nodes.length + 1}` 
       };
       pushHistory(nodes);
-      setNodes([...nodes, node]);
-      setSelectedNodeIds([node.id]);
+      const nextNodes = [...nodes, node];
+      setNodes(nextNodes);
+      setSelectedNodeIds([newNodeId]);
+
+      // NEW: Automatically extract text on import for a "natural" experience
+      setProcessingTool('text');
+      try {
+        await EditTextTool.extract({
+          ...toolContext,
+          nodes: nextNodes,
+          selectedNodeIds: [newNodeId]
+        });
+      } catch (e) {
+        console.warn("Auto text extraction failed or no text found.");
+      } finally {
+        setProcessingTool(null);
+      }
     } catch (err) {
       console.error("Failed to add node", err);
     }
@@ -184,17 +200,13 @@ const EditorRoot: React.FC = () => {
     }
   };
 
-  // Executes AI Text extraction or updates based on state
-  const handleEditText = async () => {
+  // Executes AI Text updates when user clicks "Update Text" in the Text Content section
+  const handleUpdateText = async () => {
     setProcessingTool('text');
     try {
-      if (hasTextBlocks) {
-        await EditTextTool.update(toolContext);
-      } else {
-        await EditTextTool.extract(toolContext);
-      }
+      await EditTextTool.update(toolContext);
     } catch (err) {
-      console.error("AI Text Error:", err);
+      console.error("AI Text Update Error:", err);
     } finally {
       setProcessingTool(null);
     }
@@ -265,7 +277,7 @@ const EditorRoot: React.FC = () => {
         onDetach={handleDetach}
         onPlace={handlePlace}
         onRemoveBg={handleRemoveBg}
-        onEditText={handleEditText}
+        onEditText={handleUpdateText}
         isProcessing={!!processingTool}
         processingTool={processingTool}
         hasSelection={hasSelection}

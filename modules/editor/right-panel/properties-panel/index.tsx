@@ -24,7 +24,6 @@ interface PropertiesPanelProps {
 /**
  * PropertiesPanel Component
  * Displays and edits properties of the selected node(s).
- * Layout order: Layout -> Instant Tools -> Text Content.
  */
 export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ 
   selectedNodes, 
@@ -71,10 +70,10 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
 
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-bk-50">
-      {/* Transformation and Layout controls - Now at the top */}
+      {/* Transformation and Layout controls */}
       <LayoutSection node={activeNode} onUpdate={handleNodeUpdate} />
 
-      {/* AI Actions - Moved below Layout section as requested */}
+      {/* AI Actions */}
       <InstantTools 
         onDetach={onDetach}
         onPlace={onPlace}
@@ -89,8 +88,15 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         canPlace={canPlace}
       />
       
-      {/* Dynamic text blocks extracted by AI - Remains at bottom */}
-      <TextSection node={activeNode} onUpdate={handleNodeUpdate} />
+      {/* Dynamic text blocks extracted by AI */}
+      <TextSection 
+        node={activeNode} 
+        onUpdate={handleNodeUpdate} 
+        onUpdateText={onEditText}
+        isProcessing={isProcessing}
+        processingTool={processingTool}
+        hasTextChanged={hasTextChanged}
+      />
     </div>
   );
 };
