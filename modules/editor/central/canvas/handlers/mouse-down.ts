@@ -3,7 +3,8 @@ import { findNodeAt } from '../interactions/selectable.ts';
 
 /**
  * Determines what action to start when the mouse is pressed.
- * Logic updated to respect existing multi-selections and Brush mode.
+ * Logic updated to auto-select nodes when using selection tools (Lasso/Brush) 
+ * to ensure context-aware AI buttons appear immediately as the user interacts.
  */
 export const handleMouseDownAction = (
   worldPos: Point,
@@ -16,40 +17,46 @@ export const handleMouseDownAction = (
   onSetBrushStrokes: (strokes: Point[][]) => void,
   currentStrokes: Point[][]
 ): EditorAction => {
-  // 1. Pan Tool override
+  // 1. Pan Tool override: Priority for navigation
   if (toolMode === ToolMode.PAN) return EditorAction.PANNING;
 
-  // 2. Selection Mode logic
+  // 2. Selection Mode logic: Standard direct manipulation
   if (toolMode === ToolMode.SELECT) {
-    // If user clicked a resize handle
     if (activeHandle) return EditorAction.RESIZING;
     
-    // Hit test against nodes
     const hitId = findNodeAt(worldPos, nodes);
-    
     if (hitId) {
-      // If clicking a node that ISN'T already selected, make it the only selection
-      // If it IS already selected (part of a group), don't clear the others yet
       if (!selectedNodeIds.includes(hitId)) {
         onSelectNode(hitId);
       }
       return EditorAction.DRAGGING;
     } else {
-      // Clicked on empty space: start marquee selection
       onSelectNode(null);
       return EditorAction.MARQUEE;
     }
   }
   
-  // 3. Lasso Mode logic
+  // 3. Lasso Mode logic: Added auto-select behavior for convenience
   if (toolMode === ToolMode.LASSO) {
+    // If starting a lasso on a node and no node is selected, auto-select it
+    const hitId = findNodeAt(worldPos, nodes);
+    if (hitId && !selectedNodeIds.includes(hitId)) {
+      onSelectNode(hitId);
+    }
+    
     onSetLassoPath([worldPos]);
     return EditorAction.LASSOING;
   }
 
-  // 4. Brush Mode logic
+  // 4. Brush Mode logic: Added auto-select behavior for convenience
   if (toolMode === ToolMode.BRUSH) {
-    // Start a new stroke
+    // If starting a brush stroke on a node and no node is selected, auto-select it
+    const hitId = findNodeAt(worldPos, nodes);
+    if (hitId && !selectedNodeIds.includes(hitId)) {
+      onSelectNode(hitId);
+    }
+
+    // Start a new stroke in the global strokes collection
     onSetBrushStrokes([...currentStrokes, [worldPos]]);
     return EditorAction.BRUSHING;
   }

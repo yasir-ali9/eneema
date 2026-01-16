@@ -18,12 +18,6 @@ interface CentralAreaProps {
   onDeleteNode: (id: string) => void;
   onDuplicateNodes: () => void;
   isProcessing: boolean;
-  onDetach: () => void;
-  onPlace: () => void;
-  onEditText: () => void;
-  hasTextBlocks: boolean;
-  hasTextChanged: boolean;
-  canPlace: boolean;
   setCanvasRef: (ref: HTMLCanvasElement | null) => void;
   showGrid: boolean;
   onUndo: () => void;
@@ -35,6 +29,7 @@ interface CentralAreaProps {
 /**
  * CentralArea Component
  * Wraps the canvas and floating dock tools.
+ * Dock now only manages Tool Modes and History.
  */
 const CentralArea: React.FC<CentralAreaProps> = (props) => {
   return (
@@ -73,15 +68,6 @@ const CentralArea: React.FC<CentralAreaProps> = (props) => {
       <Dock 
         toolMode={props.toolMode} 
         onSetToolMode={props.setToolMode} 
-        onDetach={props.onDetach} 
-        onPlace={props.onPlace}
-        onEditText={props.onEditText}
-        hasTextBlocks={props.hasTextBlocks}
-        hasTextChanged={props.hasTextChanged}
-        canPlace={props.canPlace}
-        isProcessing={props.isProcessing} 
-        hasSelection={props.lassoPath.length > 2 || props.brushStrokes.length > 0} 
-        hasActiveNode={props.selectedNodeIds.length > 0} 
         onUndo={props.onUndo}
         onRedo={props.onRedo}
         canUndo={props.canUndo}

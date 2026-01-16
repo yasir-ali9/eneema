@@ -1,20 +1,11 @@
 import React from 'react';
 import { ToolMode } from '../../core/types.ts';
-import { MousePointer2, Lasso, Brush, Scissors, Hand, Undo2, Redo2, Stamp, Type } from 'lucide-react';
-import { Button } from '../../../../components/button.tsx';
+import { MousePointer2, Lasso, Brush, Hand, Undo2, Redo2 } from 'lucide-react';
+import { Button } from '../../../../components/button/default.tsx';
 
 interface DockProps {
   toolMode: ToolMode;
   onSetToolMode: (mode: ToolMode) => void;
-  onDetach: () => void;
-  onPlace: () => void;
-  onEditText: () => void;
-  isProcessing: boolean;
-  hasSelection: boolean;
-  hasActiveNode: boolean;
-  hasTextBlocks: boolean;
-  hasTextChanged: boolean;
-  canPlace: boolean;
   onUndo: () => void;
   onRedo: () => void;
   canUndo: boolean;
@@ -23,17 +14,17 @@ interface DockProps {
 
 /**
  * Dock Component
- * Updated with Text Editing capabilities and fixed Lucide icon import.
+ * Features core tool switchers and history navigation.
+ * AI-specific actions have been moved to the Properties Panel for a cleaner workspace.
  */
 const Dock: React.FC<DockProps> = ({ 
-  toolMode, onSetToolMode, onDetach, onPlace, onEditText, isProcessing, 
-  hasSelection, hasActiveNode, hasTextBlocks, hasTextChanged, canPlace, onUndo, onRedo, canUndo, canRedo 
+  toolMode, onSetToolMode, onUndo, onRedo, canUndo, canRedo 
 }) => {
   return (
     <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50">
       <div className="flex items-center gap-2 px-2 py-2 bg-bk-40/90 backdrop-blur-xl border border-bd-60 rounded-2xl shadow-2xl">
         
-        {/* History tools (Undo/Redo) */}
+        {/* History Navigation */}
         <div className="flex items-center gap-1 pr-2 border-r border-bd-50">
           <Button 
             variant="ghost" 
@@ -55,8 +46,8 @@ const Dock: React.FC<DockProps> = ({
           </Button>
         </div>
 
-        {/* Interaction tools selector */}
-        <div className="flex items-center gap-1 pr-2 border-r border-bd-50">
+        {/* Core Tool Selection */}
+        <div className="flex items-center gap-1">
           <Button 
             variant={toolMode === ToolMode.SELECT ? 'primary' : 'ghost'} 
             size="icon" 
@@ -88,50 +79,6 @@ const Dock: React.FC<DockProps> = ({
             title="Brush Tool (B)"
           >
             <Brush size={18} />
-          </Button>
-        </div>
-
-        {/* AI action execution group */}
-        <div className="flex items-center gap-1 pl-1">
-          {/* Contextual Text Edit Button */}
-          {hasActiveNode && (
-            <>
-              <Button
-                variant="accent"
-                onClick={onEditText}
-                disabled={isProcessing}
-                loading={isProcessing && (hasTextBlocks ? hasTextChanged : true)}
-                icon={<Type size={16} />}
-                className="h-10 px-4 font-semibold tracking-tight"
-                title={hasTextBlocks ? "Update image with new text" : "Extract text from image"}
-              >
-                {hasTextBlocks ? "Update Text" : "Edit Text"}
-              </Button>
-              <div className="w-px h-6 bg-bd-50 mx-1"></div>
-            </>
-          )}
-
-          <Button 
-            variant="accent" 
-            onClick={onPlace} 
-            disabled={!canPlace || isProcessing}
-            loading={isProcessing && canPlace} 
-            icon={<Stamp size={16} />}
-            className="h-10 px-4 font-semibold tracking-tight"
-            title="Place Object (Smart Blend)"
-          >
-            Place
-          </Button>
-          <div className="w-px h-6 bg-bd-50 mx-1"></div>
-          <Button 
-            variant="accent" 
-            onClick={onDetach} 
-            disabled={!hasActiveNode || !hasSelection || isProcessing}
-            loading={isProcessing && hasSelection} 
-            icon={<Scissors size={16} />}
-            className="h-10 px-4 font-semibold tracking-tight"
-          >
-            Detach
           </Button>
         </div>
       </div>

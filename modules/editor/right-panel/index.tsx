@@ -8,6 +8,16 @@ interface RightPanelProps {
   selectedNodeIds: string[];
   onUpdateNodes: (nodes: EditorNode[]) => void;
   onPushHistory: () => void;
+  // AI Actions
+  onDetach: () => void;
+  onPlace: () => void;
+  onEditText: () => void;
+  isProcessing: boolean;
+  processingTool: 'detach' | 'place' | 'text' | null;
+  hasSelection: boolean;
+  hasTextBlocks: boolean;
+  hasTextChanged: boolean;
+  canPlace: boolean;
 }
 
 /**
@@ -18,7 +28,16 @@ const RightPanel: React.FC<RightPanelProps> = ({
   nodes, 
   selectedNodeIds, 
   onUpdateNodes,
-  onPushHistory
+  onPushHistory,
+  onDetach,
+  onPlace,
+  onEditText,
+  isProcessing,
+  processingTool,
+  hasSelection,
+  hasTextBlocks,
+  hasTextChanged,
+  canPlace
 }) => {
   // derive selected nodes objects from IDs
   const selectedNodes = nodes.filter(n => selectedNodeIds.includes(n.id));
@@ -33,6 +52,15 @@ const RightPanel: React.FC<RightPanelProps> = ({
         selectedNodes={selectedNodes} 
         onUpdateNodes={onUpdateNodes}
         onPushHistory={onPushHistory}
+        onDetach={onDetach}
+        onPlace={onPlace}
+        onEditText={onEditText}
+        isProcessing={isProcessing}
+        processingTool={processingTool}
+        hasSelection={hasSelection}
+        hasTextBlocks={hasTextBlocks}
+        hasTextChanged={hasTextChanged}
+        canPlace={canPlace}
       />
     </div>
   );

@@ -1,7 +1,7 @@
 import React from 'react';
 import { EditorNode } from '../../core/types.ts';
 import { Layers, Trash2 } from 'lucide-react';
-import { Button } from '../../../../components/button.tsx';
+import { Button } from '../../../../components/button/default.tsx';
 
 interface LayersPanelProps {
   nodes: EditorNode[];

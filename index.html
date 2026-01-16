@@ -102,6 +102,20 @@
       ::-webkit-scrollbar-thumb:hover {
         background: rgb(var(--bk-20)); 
       }
+
+      @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+      }
+      .animate-shimmer {
+        animation: shimmer 1.5s infinite;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.05),
+          transparent
+        );
+      }
     </style>
 <script type="importmap">
 {

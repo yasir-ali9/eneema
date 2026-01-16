@@ -10,7 +10,7 @@ import { DetachTool } from '../tools/detach/index.ts';
 import { PlaceTool } from '../tools/place/index.ts';
 import { EditTextTool } from '../tools/edit-text/index.ts';
 import { ToolExecutionContext } from '../tools/types.ts';
-import { Button } from '../../../components/button.tsx';
+import { Button } from '../../../components/button/default.tsx';
 import { Key } from 'lucide-react';
 
 /**
@@ -24,7 +24,10 @@ const EditorRoot: React.FC = () => {
   const [toolMode, setToolMode] = useState<ToolMode>(ToolMode.SELECT);
   const [lassoPath, setLassoPath] = useState<Point[]>([]);
   const [brushStrokes, setBrushStrokes] = useState<Point[][]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Track which specific tool is currently processing
+  const [processingTool, setProcessingTool] = useState<'detach' | 'place' | 'text' | null>(null);
+  
   const [projectName, setProjectName] = useState("Gemini 3 Project");
   const [showGrid, setShowGrid] = useState(false);
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
@@ -74,6 +77,7 @@ const EditorRoot: React.FC = () => {
   const activeNode = useMemo(() => nodes.find(n => n.id === selectedNodeIds[0]), [nodes, selectedNodeIds]);
   const hasTextBlocks = !!(activeNode?.textBlocks && activeNode.textBlocks.length > 0);
   const hasTextChanged = !!(activeNode?.textBlocks?.some(b => b.text !== b.originalText));
+  const hasSelection = lassoPath.length > 2 || brushStrokes.length > 0;
 
   // Determine if "Place" (Smart Blend) is possible based on node stacking and overlap
   const canPlace = useMemo(() => {
@@ -81,15 +85,13 @@ const EditorRoot: React.FC = () => {
     const fgId = selectedNodeIds[0];
     const fgIndex = nodes.findIndex(n => n.id === fgId);
     if (fgIndex <= 0) return false; 
-    
     const fg = nodes[fgIndex];
-    const bg = nodes[fgIndex - 1];
-    
-    // Check if the foreground node intersects with its immediate background node
-    return !(fg.x > bg.x + bg.width || 
-             fg.x + fg.width < bg.x || 
-             fg.y > bg.y + bg.height || 
-             fg.y + fg.height < bg.y);
+    return nodes.slice(0, fgIndex).some(bg => {
+       return !(fg.x > bg.x + bg.width || 
+                fg.x + fg.width < bg.x || 
+                fg.y > bg.y + bg.height || 
+                fg.y + fg.height < bg.y);
+    });
   }, [nodes, selectedNodeIds]);
 
   // Adds a new image node to the canvas at a default position
@@ -147,31 +149,31 @@ const EditorRoot: React.FC = () => {
 
   // Executes the AI Detach tool logic
   const handleDetach = async () => {
-    setIsProcessing(true);
+    setProcessingTool('detach');
     try {
       await DetachTool.execute(toolContext);
     } catch (err) {
       console.error("AI Detach Error:", err);
     } finally {
-      setIsProcessing(false);
+      setProcessingTool(null);
     }
   };
 
   // Executes the AI Place (Smart Blend) tool logic
   const handlePlace = async () => {
-    setIsProcessing(true);
+    setProcessingTool('place');
     try {
       await PlaceTool.execute(toolContext);
     } catch (err) {
       console.error("AI Place Error:", err);
     } finally {
-      setIsProcessing(false);
+      setProcessingTool(null);
     }
   };
 
   // Executes AI Text extraction or updates based on state
   const handleEditText = async () => {
-    setIsProcessing(true);
+    setProcessingTool('text');
     try {
       if (hasTextBlocks) {
         await EditTextTool.update(toolContext);
@@ -181,11 +183,10 @@ const EditorRoot: React.FC = () => {
     } catch (err) {
       console.error("AI Text Error:", err);
     } finally {
-      setIsProcessing(false);
+      setProcessingTool(null);
     }
   };
 
-  // Show a setup screen if the user has not yet authenticated with an API key
   if (hasApiKey === false) {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center bg-bk-60 p-8 text-center">
@@ -208,7 +209,6 @@ const EditorRoot: React.FC = () => {
 
   return (
     <div className="w-full h-full flex overflow-hidden">
-      {/* Sidebar for project management and assets */}
       <LeftPanel 
         nodes={nodes} 
         selectedNodeIds={selectedNodeIds} 
@@ -221,7 +221,6 @@ const EditorRoot: React.FC = () => {
         onToggleGrid={() => setShowGrid(!showGrid)}
       />
       
-      {/* Main viewport with canvas and dock */}
       <CentralArea 
         nodes={nodes}
         toolMode={toolMode}
@@ -236,13 +235,7 @@ const EditorRoot: React.FC = () => {
         onPushHistory={pushHistory}
         onDeleteNode={handleDeleteNode}
         onDuplicateNodes={handleDuplicateNodes}
-        isProcessing={isProcessing}
-        onDetach={handleDetach}
-        onPlace={handlePlace}
-        onEditText={handleEditText}
-        hasTextBlocks={hasTextBlocks}
-        hasTextChanged={hasTextChanged}
-        canPlace={canPlace}
+        isProcessing={!!processingTool}
         setCanvasRef={(ref) => { canvasRef.current = ref; }}
         showGrid={showGrid}
         onUndo={undo}
@@ -251,12 +244,20 @@ const EditorRoot: React.FC = () => {
         canRedo={canRedo}
       />
 
-      {/* Sidebar for editing object properties */}
       <RightPanel 
         nodes={nodes}
         selectedNodeIds={selectedNodeIds}
         onUpdateNodes={handleUpdateNodes}
         onPushHistory={() => pushHistory(nodes)}
+        onDetach={handleDetach}
+        onPlace={handlePlace}
+        onEditText={handleEditText}
+        isProcessing={!!processingTool}
+        processingTool={processingTool}
+        hasSelection={hasSelection}
+        hasTextBlocks={hasTextBlocks}
+        hasTextChanged={hasTextChanged}
+        canPlace={canPlace}
       />
     </div>
   );

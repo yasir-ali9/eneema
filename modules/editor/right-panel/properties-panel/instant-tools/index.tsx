@@ -1,0 +1,81 @@
+import React from 'react';
+import { Scissors, Stamp, Type } from 'lucide-react';
+import { ActionButton } from '../../../../../components/button/action.tsx';
+
+interface InstantToolsProps {
+  onDetach: () => void;
+  onPlace: () => void;
+  onEditText: () => void;
+  isProcessing: boolean;
+  processingTool: 'detach' | 'place' | 'text' | null;
+  hasSelection: boolean;
+  hasActiveNode: boolean;
+  hasTextBlocks: boolean;
+  hasTextChanged: boolean;
+  canPlace: boolean;
+}
+
+/**
+ * InstantTools Section
+ * Centralizes AI action buttons in the Properties Panel.
+ * Now supports granular loading states for each individual action.
+ */
+export const InstantTools: React.FC<InstantToolsProps> = ({
+  onDetach,
+  onPlace,
+  onEditText,
+  isProcessing,
+  processingTool,
+  hasSelection,
+  hasActiveNode,
+  hasTextBlocks,
+  hasTextChanged,
+  canPlace
+}) => {
+  if (!hasActiveNode) return null;
+
+  return (
+    <div className="flex flex-col gap-3 p-4 border-b border-bd-50">
+      <div className="flex items-center justify-between">
+        <h3 className="text-[10px] font-bold text-fg-70 uppercase tracking-wider">Instant Tools</h3>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        {/* Row 1: Detach and Text AI */}
+        <ActionButton
+          label="Detach"
+          icon={<Scissors size={14} />}
+          onClick={onDetach}
+          disabled={!hasSelection || (isProcessing && processingTool !== 'detach')}
+          loading={processingTool === 'detach'}
+          colSpan={1}
+          title="Extract selected object from background"
+        />
+
+        <ActionButton
+          label={hasTextBlocks ? (hasTextChanged ? "Update Text" : "Refresh Text") : "Edit Text"}
+          icon={<Type size={14} />}
+          onClick={onEditText}
+          loading={processingTool === 'text'}
+          disabled={isProcessing && processingTool !== 'text'}
+          colSpan={2}
+          title={hasTextBlocks ? "Regenerate image with modified text" : "Scan and extract text layers"}
+        />
+
+        {/* Row 2: Placement AI */}
+        <ActionButton
+          label="Place"
+          icon={<Stamp size={14} />}
+          onClick={onPlace}
+          disabled={!canPlace || (isProcessing && processingTool !== 'place')}
+          loading={processingTool === 'place'}
+          colSpan={1}
+          title="Seamlessly blend foreground into overlapping background"
+        />
+        
+        {/* Empty space to maintain grid alignment */}
+        <div className="col-span-2 pointer-events-none opacity-0" />
+      </div>
+    </div>
+  );
+};

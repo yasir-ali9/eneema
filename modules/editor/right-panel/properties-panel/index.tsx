@@ -2,21 +2,42 @@ import React from 'react';
 import { EditorNode } from '../../core/types.ts';
 import { LayoutSection } from './layout/index.tsx';
 import { TextSection } from './text/index.tsx';
+import { InstantTools } from './instant-tools/index.tsx';
 
 interface PropertiesPanelProps {
   selectedNodes: EditorNode[];
   onUpdateNodes: (nodes: EditorNode[]) => void;
   onPushHistory: () => void;
+  // AI Tool Actions
+  onDetach: () => void;
+  onPlace: () => void;
+  onEditText: () => void;
+  isProcessing: boolean;
+  processingTool: 'detach' | 'place' | 'text' | null;
+  hasSelection: boolean;
+  hasTextBlocks: boolean;
+  hasTextChanged: boolean;
+  canPlace: boolean;
 }
 
 /**
  * PropertiesPanel Component
  * Displays and edits properties of the selected node(s).
+ * Now includes "Instant Tools" for AI-powered actions.
  */
-const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ 
+export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({ 
   selectedNodes, 
   onUpdateNodes,
-  onPushHistory 
+  onPushHistory,
+  onDetach,
+  onPlace,
+  onEditText,
+  isProcessing,
+  processingTool,
+  hasSelection,
+  hasTextBlocks,
+  hasTextChanged,
+  canPlace
 }) => {
   // If nothing is selected, we show nothing
   if (selectedNodes.length === 0) {
@@ -32,7 +53,6 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
 
   const handleNodeUpdate = (changes: Partial<EditorNode>) => {
     // 1. Commit current state to history before applying changes (only for layout/transform)
-    // For text typing, we might want to debouncing history, but for simplicity:
     if (Object.keys(changes).some(k => ['x','y','width','height','rotation','opacity'].includes(k))) {
        onPushHistory();
     }
@@ -48,8 +68,24 @@ const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
 
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-bk-50">
+      {/* AI Actions at the top for high visibility */}
+      <InstantTools 
+        onDetach={onDetach}
+        onPlace={onPlace}
+        onEditText={onEditText}
+        isProcessing={isProcessing}
+        processingTool={processingTool}
+        hasSelection={hasSelection}
+        hasActiveNode={true}
+        hasTextBlocks={hasTextBlocks}
+        hasTextChanged={hasTextChanged}
+        canPlace={canPlace}
+      />
+
+      {/* Transformation and Layout controls */}
       <LayoutSection node={activeNode} onUpdate={handleNodeUpdate} />
-      {/* AI Text Section */}
+      
+      {/* Dynamic text blocks extracted by AI */}
       <TextSection node={activeNode} onUpdate={handleNodeUpdate} />
     </div>
   );
