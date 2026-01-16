@@ -2,6 +2,7 @@ import { EditorNode, Viewport, Point } from '../../core/types.ts';
 
 /**
  * Pure function to render the entire canvas scene
+ * Added processingNodeId and shimmerOffset to support visual feedback during AI tasks.
  */
 export const renderCanvas = (
   ctx: CanvasRenderingContext2D,
@@ -12,7 +13,9 @@ export const renderCanvas = (
   brushStrokes: Point[][],
   marquee: { start: Point, end: Point } | null,
   showGrid: boolean = true,
-  offscreenCanvas: HTMLCanvasElement | null = null
+  offscreenCanvas: HTMLCanvasElement | null = null,
+  processingNodeId: string | null = null,
+  shimmerOffset: number = 0
 ) => {
   const { width, height } = ctx.canvas;
   
@@ -42,7 +45,6 @@ export const renderCanvas = (
   }
 
   // 2. Render Nodes (Images)
-  // Updated to use "Object Fit: Cover" logic to prevent stretching/distortion
   nodes.forEach(node => {
     const img = imageCache[node.src];
     if (img) {
@@ -61,28 +63,44 @@ export const renderCanvas = (
       ctx.rect(0, 0, node.width, node.height);
       ctx.clip();
 
-      // Calculate aspect ratios
+      // Calculate aspect ratios for "Object Fit: Cover"
       const imgRatio = img.width / img.height;
       const nodeRatio = node.width / node.height;
       
       let drawW, drawH, offsetX, offsetY;
-
-      // "Cover" logic: Fill the box entirely while maintaining aspect ratio
       if (nodeRatio > imgRatio) {
-        // Node is wider than image relative to ratio -> Match width, crop height
         drawW = node.width;
         drawH = node.width / imgRatio;
         offsetX = 0;
-        offsetY = (node.height - drawH) / 2; // Center vertically
+        offsetY = (node.height - drawH) / 2;
       } else {
-        // Node is taller than image relative to ratio -> Match height, crop width
         drawH = node.height;
         drawW = node.height * imgRatio;
         offsetY = 0;
-        offsetX = (node.width - drawW) / 2; // Center horizontally
+        offsetX = (node.width - drawW) / 2;
       }
 
       ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
+
+      // Shimmer Overlay logic for nodes currently being processed by AI
+      if (node.id === processingNodeId) {
+        ctx.save();
+        // Single line comment: Creates a diagonal shimmer gradient that moves based on the animation offset.
+        const shimmerGrad = ctx.createLinearGradient(
+          -node.width + (shimmerOffset * node.width * 3), 
+          0, 
+          shimmerOffset * node.width * 3, 
+          node.height
+        );
+        shimmerGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+        shimmerGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.2)');
+        shimmerGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        
+        ctx.fillStyle = shimmerGrad;
+        ctx.globalCompositeOperation = 'source-atop'; // Only draw shimmer over the image pixels
+        ctx.fillRect(0, 0, node.width, node.height);
+        ctx.restore();
+      }
       
       ctx.restore();
     }
@@ -102,30 +120,23 @@ export const renderCanvas = (
     ctx.setLineDash([]);
   }
 
-  // 4. Render Brush Strokes with Uniform Opacity
+  // 4. Render Brush Strokes
   if (brushStrokes.length > 0) {
-    // Use the passed offscreen canvas or create a temporary one (fallback)
     const buffer = offscreenCanvas || document.createElement('canvas');
     if (!offscreenCanvas) {
         buffer.width = width;
         buffer.height = height;
     }
-    
     const offCtx = buffer.getContext('2d');
     if (offCtx) {
-        // Clear buffer
         offCtx.setTransform(1, 0, 0, 1, 0, 0);
         offCtx.clearRect(0, 0, buffer.width, buffer.height);
-        
-        // Match viewport transform
         offCtx.translate(viewport.x, viewport.y);
         offCtx.scale(viewport.zoom, viewport.zoom);
-        
         offCtx.lineCap = 'round';
         offCtx.lineJoin = 'round';
-        offCtx.lineWidth = 30; // Constant brush size
-        offCtx.strokeStyle = '#2460b7'; // Solid Blue (ac-01)
-        
+        offCtx.lineWidth = 30;
+        offCtx.strokeStyle = '#2460b7';
         brushStrokes.forEach(stroke => {
           if (stroke.length < 1) return;
           offCtx.beginPath();
@@ -133,11 +144,9 @@ export const renderCanvas = (
           stroke.forEach(p => offCtx.lineTo(p.x, p.y));
           offCtx.stroke();
         });
-        
-        // Composite the opaque brush strokes onto the main canvas with uniform transparency
         ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform to draw screen-aligned buffer
-        ctx.globalAlpha = 0.5; // Uniform transparency 50%
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalAlpha = 0.5;
         ctx.drawImage(buffer, 0, 0);
         ctx.restore();
     }
@@ -149,7 +158,6 @@ export const renderCanvas = (
     const y = Math.min(marquee.start.y, marquee.end.y);
     const w = Math.abs(marquee.start.x - marquee.end.x);
     const h = Math.abs(marquee.start.y - marquee.end.y);
-
     ctx.fillStyle = 'rgba(36, 96, 183, 0.1)';
     ctx.fillRect(x, y, w, h);
     ctx.strokeStyle = '#2460b7';

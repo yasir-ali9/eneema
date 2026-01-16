@@ -18,6 +18,7 @@ interface CentralAreaProps {
   onDeleteNode: (id: string) => void;
   onDuplicateNodes: () => void;
   isProcessing: boolean;
+  processingNodeId: string | null;
   setCanvasRef: (ref: HTMLCanvasElement | null) => void;
   showGrid: boolean;
   onUndo: () => void;
@@ -29,7 +30,6 @@ interface CentralAreaProps {
 /**
  * CentralArea Component
  * Wraps the canvas and floating dock tools.
- * Dock now only manages Tool Modes and History.
  */
 const CentralArea: React.FC<CentralAreaProps> = (props) => {
   return (
@@ -63,6 +63,7 @@ const CentralArea: React.FC<CentralAreaProps> = (props) => {
         }}
         setCanvasRef={props.setCanvasRef} 
         showGrid={props.showGrid}
+        processingNodeId={props.processingNodeId}
       />
       
       <Dock 

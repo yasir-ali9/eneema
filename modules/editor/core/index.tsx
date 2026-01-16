@@ -20,68 +20,52 @@ import { Key } from 'lucide-react';
  * The central brain orchestrating canvas nodes, project state, and AI services.
  */
 const EditorRoot: React.FC = () => {
-  // Enhanced history management
   const { nodes, setNodes, pushHistory, undo, redo, canUndo, canRedo } = useEditorHistory([]);
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [toolMode, setToolMode] = useState<ToolMode>(ToolMode.SELECT);
   const [lassoPath, setLassoPath] = useState<Point[]>([]);
   const [brushStrokes, setBrushStrokes] = useState<Point[][]>([]);
   
-  // Track which specific tool is currently processing
   const [processingTool, setProcessingTool] = useState<'detach' | 'place' | 'text' | 'remove-bg' | 'erase' | null>(null);
+  // Single line comment: Explicitly track which node is shimmering to prevent shimmer loss on deselection.
+  const [activeProcessingNodeId, setActiveProcessingNodeId] = useState<string | null>(null);
   
   const [projectName, setProjectName] = useState("Gemini 3 Project");
   const [showGrid, setShowGrid] = useState(false);
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Check for API key on mount to handle Veo/Gemini 3 Pro requirements
   useEffect(() => {
     const checkKey = async () => {
-      // @ts-ignore - Internal API Studio global
+      // @ts-ignore
       if (window.aistudio?.hasSelectedApiKey) {
-        // @ts-ignore - Internal API Studio global
+        // @ts-ignore
         const has = await window.aistudio.hasSelectedApiKey();
         setHasApiKey(has);
-      } else {
-        setHasApiKey(true); // Fallback for environments without the select key requirement
-      }
+      } else setHasApiKey(true);
     };
     checkKey();
   }, []);
 
-  // Opens the API key selection dialog provided by the platform
   const handleOpenSelectKey = async () => {
-    // @ts-ignore - Internal API Studio global
+    // @ts-ignore
     if (window.aistudio?.openSelectKey) {
-      // @ts-ignore - Internal API Studio global
+      // @ts-ignore
       await window.aistudio.openSelectKey();
-      // Assume success after triggering the dialog per guidelines
       setHasApiKey(true);
     }
   };
 
-  // Tool Context for delegating logic to specific AI tool modules
   const toolContext: ToolExecutionContext = {
-    nodes,
-    selectedNodeIds,
-    lassoPath,
-    brushStrokes,
-    pushHistory,
-    setNodes,
-    setSelectedNodeIds,
-    setLassoPath,
-    setBrushStrokes,
-    setToolMode
+    nodes, selectedNodeIds, lassoPath, brushStrokes,
+    pushHistory, setNodes, setSelectedNodeIds, setLassoPath, setBrushStrokes, setToolMode
   };
 
-  // State derived helpers for UI feedback
   const activeNode = useMemo(() => nodes.find(n => n.id === selectedNodeIds[0]), [nodes, selectedNodeIds]);
   const hasTextBlocks = !!(activeNode?.textBlocks && activeNode.textBlocks.length > 0);
   const hasTextChanged = !!(activeNode?.textBlocks?.some(b => b.text !== b.originalText));
   const hasSelection = lassoPath.length > 2 || brushStrokes.length > 0;
 
-  // Determine if "Place" (Smart Blend) is possible based on node stacking and overlap
   const canPlace = useMemo(() => {
     if (selectedNodeIds.length !== 1) return false;
     const fgId = selectedNodeIds[0];
@@ -96,45 +80,29 @@ const EditorRoot: React.FC = () => {
     });
   }, [nodes, selectedNodeIds]);
 
-  // Adds a new image node to the canvas at a default position
   const addNode = async (src: string) => {
     try {
       const img = await loadImage(src);
       const newNodeId = crypto.randomUUID();
       const node: EditorNode = { 
-          id: newNodeId, 
-          type: 'image', 
-          src, 
-          x: 100, y: 100, 
+          id: newNodeId, type: 'image', src, x: 100, y: 100, 
           width: DEFAULT_NODE_WIDTH, 
           height: Math.round(DEFAULT_NODE_WIDTH * (img.height/img.width)), 
-          rotation: 0, opacity: 1, 
-          name: `Node ${nodes.length + 1}` 
+          rotation: 0, opacity: 1, name: `Node ${nodes.length + 1}` 
       };
       pushHistory(nodes);
       const nextNodes = [...nodes, node];
       setNodes(nextNodes);
       setSelectedNodeIds([newNodeId]);
-
-      // NEW: Automatically extract text on import for a "natural" experience
+      
+      // Single line comment: Initially adding an image does NOT trigger activeProcessingNodeId (no shimmer).
       setProcessingTool('text');
-      try {
-        await EditTextTool.extract({
-          ...toolContext,
-          nodes: nextNodes,
-          selectedNodeIds: [newNodeId]
-        });
-      } catch (e) {
-        console.warn("Auto text extraction failed or no text found.");
-      } finally {
-        setProcessingTool(null);
-      }
-    } catch (err) {
-      console.error("Failed to add node", err);
-    }
+      try { await EditTextTool.extract({ ...toolContext, nodes: nextNodes, selectedNodeIds: [newNodeId] }); } 
+      catch (e) { console.warn("Auto text extraction failed"); } 
+      finally { setProcessingTool(null); }
+    } catch (err) { console.error("Failed to add node", err); }
   };
 
-  // Synchronizes node updates across the canvas and panels
   const handleUpdateNodes = (updatedNodes: EditorNode[]) => {
     const nextNodes = nodes.map(n => {
       const updated = updatedNodes.find(un => un.id === n.id);
@@ -143,86 +111,51 @@ const EditorRoot: React.FC = () => {
     setNodes(nextNodes);
   };
 
-  // Deletes a node and records the change in history
   const handleDeleteNode = (id: string) => {
     pushHistory(nodes);
     setNodes(nodes.filter(n => n.id !== id));
     setSelectedNodeIds(prev => prev.filter(sid => sid !== id));
   };
 
-  // Duplicates the currently selected nodes
   const handleDuplicateNodes = () => {
     if (selectedNodeIds.length === 0) return;
     pushHistory(nodes);
     const newNodes = nodes.filter(n => selectedNodeIds.includes(n.id)).map(n => ({
-      ...n,
-      id: crypto.randomUUID(),
-      x: n.x + 40,
-      y: n.y + 40,
-      name: `${n.name} Copy`
+      ...n, id: crypto.randomUUID(), x: n.x + 40, y: n.y + 40, name: `${n.name} Copy`
     }));
     setNodes([...nodes, ...newNodes]);
     setSelectedNodeIds(newNodes.map(n => n.id));
   };
 
-  // Executes the AI Detach tool logic
   const handleDetach = async () => {
     setProcessingTool('detach');
-    try {
-      await DetachTool.execute(toolContext);
-    } catch (err) {
-      console.error("AI Detach Error:", err);
-    } finally {
-      setProcessingTool(null);
-    }
+    setActiveProcessingNodeId(selectedNodeIds[0]);
+    try { await DetachTool.execute(toolContext); } finally { setProcessingTool(null); setActiveProcessingNodeId(null); }
   };
 
-  // Executes the AI Erase tool logic
   const handleErase = async () => {
     setProcessingTool('erase');
-    try {
-      await EraseTool.execute(toolContext);
-    } catch (err) {
-      console.error("AI Erase Error:", err);
-    } finally {
-      setProcessingTool(null);
-    }
+    setActiveProcessingNodeId(selectedNodeIds[0]);
+    try { await EraseTool.execute(toolContext); } finally { setProcessingTool(null); setActiveProcessingNodeId(null); }
   };
 
-  // Executes the AI Place (Smart Blend) tool logic
   const handlePlace = async () => {
     setProcessingTool('place');
-    try {
-      await PlaceTool.execute(toolContext);
-    } catch (err) {
-      console.error("AI Place Error:", err);
-    } finally {
-      setProcessingTool(null);
-    }
+    setActiveProcessingNodeId(selectedNodeIds[0]);
+    try { await PlaceTool.execute(toolContext); } finally { setProcessingTool(null); setActiveProcessingNodeId(null); }
   };
 
-  // Executes the AI Background Removal logic
   const handleRemoveBg = async () => {
     setProcessingTool('remove-bg');
-    try {
-      await RemoveBgTool.execute(toolContext);
-    } catch (err) {
-      console.error("AI Remove BG Error:", err);
-    } finally {
-      setProcessingTool(null);
-    }
+    setActiveProcessingNodeId(selectedNodeIds[0]);
+    try { await RemoveBgTool.execute(toolContext); } finally { setProcessingTool(null); setActiveProcessingNodeId(null); }
   };
 
-  // Executes AI Text updates when user clicks "Update Text" in the Text Content section
   const handleUpdateText = async () => {
     setProcessingTool('text');
-    try {
-      await EditTextTool.update(toolContext);
-    } catch (err) {
-      console.error("AI Text Update Error:", err);
-    } finally {
-      setProcessingTool(null);
-    }
+    // Single line comment: Manual text updates trigger the shimmer effect.
+    setActiveProcessingNodeId(selectedNodeIds[0]);
+    try { await EditTextTool.update(toolContext); } finally { setProcessingTool(null); setActiveProcessingNodeId(null); }
   };
 
   if (hasApiKey === false) {
@@ -231,15 +164,8 @@ const EditorRoot: React.FC = () => {
         <div className="max-w-md bg-bk-50 border border-bd-50 p-8 rounded-2xl shadow-2xl">
           <Key className="w-12 h-12 text-ac-01 mx-auto mb-6" />
           <h2 className="text-2xl font-bold text-fg-30 mb-4">API Key Required</h2>
-          <p className="text-fg-60 mb-8 text-sm leading-relaxed">
-            To use the advanced AI features of Gemini 3, you need to select a valid API key from your Google Cloud project with billing enabled.
-          </p>
-          <Button variant="accent" onClick={handleOpenSelectKey} className="w-full h-12 text-base">
-            Select API Key
-          </Button>
-          <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="block mt-6 text-[11px] text-fg-70 hover:text-ac-01 underline uppercase tracking-widest">
-            Billing Documentation
-          </a>
+          <Button variant="accent" onClick={handleOpenSelectKey} className="w-full h-12 text-base">Select API Key</Button>
+          <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="block mt-6 text-[11px] text-fg-70 hover:text-ac-01 underline uppercase tracking-widest">Billing Documentation</a>
         </div>
       </div>
     );
@@ -248,56 +174,29 @@ const EditorRoot: React.FC = () => {
   return (
     <div className="w-full h-full flex overflow-hidden">
       <LeftPanel 
-        nodes={nodes} 
-        selectedNodeIds={selectedNodeIds} 
-        projectName={projectName}
-        onProjectNameChange={setProjectName}
-        onImportImage={addNode}
-        onSelectNode={(id) => setSelectedNodeIds([id])}
-        onDeleteNode={handleDeleteNode}
-        showGrid={showGrid}
-        onToggleGrid={() => setShowGrid(!showGrid)}
+        nodes={nodes} selectedNodeIds={selectedNodeIds} projectName={projectName}
+        onProjectNameChange={setProjectName} onImportImage={addNode}
+        onSelectNode={(id) => setSelectedNodeIds([id])} onDeleteNode={handleDeleteNode}
+        showGrid={showGrid} onToggleGrid={() => setShowGrid(!showGrid)}
       />
-      
       <CentralArea 
-        nodes={nodes}
-        toolMode={toolMode}
-        setToolMode={setToolMode}
-        selectedNodeIds={selectedNodeIds}
-        setSelectedNodeIds={setSelectedNodeIds}
-        lassoPath={lassoPath}
-        setLassoPath={setLassoPath}
-        brushStrokes={brushStrokes}
-        setBrushStrokes={setBrushStrokes}
-        onUpdateNodes={handleUpdateNodes}
-        onPushHistory={pushHistory}
-        onDeleteNode={handleDeleteNode}
-        onDuplicateNodes={handleDuplicateNodes}
-        isProcessing={!!processingTool}
+        nodes={nodes} toolMode={toolMode} setToolMode={setToolMode}
+        selectedNodeIds={selectedNodeIds} setSelectedNodeIds={setSelectedNodeIds}
+        lassoPath={lassoPath} setLassoPath={setLassoPath}
+        brushStrokes={brushStrokes} setBrushStrokes={setBrushStrokes}
+        onUpdateNodes={handleUpdateNodes} onPushHistory={pushHistory}
+        onDeleteNode={handleDeleteNode} onDuplicateNodes={handleDuplicateNodes}
+        isProcessing={!!processingTool} processingNodeId={activeProcessingNodeId}
         setCanvasRef={(ref) => { canvasRef.current = ref; }}
-        showGrid={showGrid}
-        onUndo={undo}
-        onRedo={redo}
-        canUndo={canUndo}
-        canRedo={canRedo}
+        showGrid={showGrid} onUndo={undo} onRedo={redo} canUndo={canUndo} canRedo={canRedo}
       />
-
       <RightPanel 
-        nodes={nodes}
-        selectedNodeIds={selectedNodeIds}
-        onUpdateNodes={handleUpdateNodes}
-        onPushHistory={() => pushHistory(nodes)}
-        onDetach={handleDetach}
-        onPlace={handlePlace}
-        onRemoveBg={handleRemoveBg}
-        onErase={handleErase}
-        onEditText={handleUpdateText}
-        isProcessing={!!processingTool}
-        processingTool={processingTool}
-        hasSelection={hasSelection}
-        hasTextBlocks={hasTextBlocks}
-        hasTextChanged={hasTextChanged}
-        canPlace={canPlace}
+        nodes={nodes} selectedNodeIds={selectedNodeIds} onUpdateNodes={handleUpdateNodes}
+        onPushHistory={() => pushHistory(nodes)} onDetach={handleDetach}
+        onPlace={handlePlace} onRemoveBg={handleRemoveBg} onErase={handleErase}
+        onEditText={handleUpdateText} isProcessing={!!processingTool}
+        processingTool={processingTool} hasSelection={hasSelection}
+        hasTextBlocks={hasTextBlocks} hasTextChanged={hasTextChanged} canPlace={canPlace}
       />
     </div>
   );

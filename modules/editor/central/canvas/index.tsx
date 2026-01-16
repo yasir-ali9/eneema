@@ -27,15 +27,18 @@ interface CanvasBoardProps {
   onDuplicateNodes: () => void;
   setCanvasRef: (ref: HTMLCanvasElement | null) => void;
   showGrid: boolean;
+  processingNodeId: string | null;
 }
 
 /**
  * CanvasBoard orchestrator.
  * Delegates all logic to modular handlers for maximum maintainability.
+ * Added animation loop for shimmer effect on nodes.
  */
 const CanvasBoard: React.FC<CanvasBoardProps> = ({ 
   nodes, toolMode, setToolMode, selectedNodeIds, lassoPath, 
-  onSetLassoPath, brushStrokes, onSetBrushStrokes, onUpdateNodes, onPushHistory, onSelectNode, onSelectNodes, onDeleteNode, onDuplicateNodes, setCanvasRef, showGrid 
+  onSetLassoPath, brushStrokes, onSetBrushStrokes, onUpdateNodes, onPushHistory, onSelectNode, onSelectNodes, onDeleteNode, onDuplicateNodes, setCanvasRef, showGrid,
+  processingNodeId
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -47,18 +50,18 @@ const CanvasBoard: React.FC<CanvasBoardProps> = ({
   const [activeHandle, setActiveHandle] = useState<HandleType | null>(null);
   const [imageCache, setImageCache] = useState<Record<string, HTMLImageElement>>({});
 
-  // History optimization: Snapshots the nodes before an interaction starts
-  const initialNodesRef = useRef<EditorNode[] | null>(null);
-  
-  // Stores the tool mode to return to after releasing the temporary Space-hold pan
-  const previousToolRef = useRef<ToolMode | null>(null);
+  // Shimmer animation state
+  const [shimmerOffset, setShimmerOffset] = useState(0);
+  const animationFrameRef = useRef<number | null>(null);
 
-  // Marquee state
+  // History optimization
+  const initialNodesRef = useRef<EditorNode[] | null>(null);
+  const previousToolRef = useRef<ToolMode | null>(null);
   const [marquee, setMarquee] = useState<{ start: Point, end: Point } | null>(null);
 
   useEffect(() => { setCanvasRef(canvasRef.current); }, [setCanvasRef]);
 
-  // Preload and cache node assets
+  // Preload assets
   useEffect(() => {
     nodes.forEach(n => {
       if (!imageCache[n.src]) {
@@ -73,66 +76,55 @@ const CanvasBoard: React.FC<CanvasBoardProps> = ({
     const ctx = canvasRef.current?.getContext('2d');
     if (ctx) {
       renderCanvas(
-        ctx, 
-        nodes, 
-        imageCache, 
-        viewport, 
-        lassoPath, 
-        brushStrokes, 
-        marquee, 
-        showGrid, 
-        offscreenRef.current
+        ctx, nodes, imageCache, viewport, lassoPath, brushStrokes, marquee, showGrid, offscreenRef.current,
+        processingNodeId, shimmerOffset
       );
     }
-  }, [nodes, imageCache, viewport, lassoPath, brushStrokes, marquee, showGrid]);
+  }, [nodes, imageCache, viewport, lassoPath, brushStrokes, marquee, showGrid, processingNodeId, shimmerOffset]);
 
-  // Sync window resizing and global hotkeys including temporary Space-pan logic
+  // Shimmer Animation Loop
+  // Single line comment: Runs a continuous loop to update the shimmer offset while a node is being processed.
+  useEffect(() => {
+    if (processingNodeId) {
+      const animate = () => {
+        setShimmerOffset(prev => (prev + 0.015) % 1);
+        animationFrameRef.current = requestAnimationFrame(animate);
+      };
+      animationFrameRef.current = requestAnimationFrame(animate);
+    } else {
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+      setShimmerOffset(0);
+    }
+    return () => { if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current); };
+  }, [processingNodeId]);
+
+  // Window/Input Listeners
   useEffect(() => {
     const resize = () => { 
         if (containerRef.current && canvasRef.current) { 
             canvasRef.current.width = containerRef.current.clientWidth; 
             canvasRef.current.height = containerRef.current.clientHeight;
-            
-            // Resize offscreen buffer to match
-            if (!offscreenRef.current) {
-                offscreenRef.current = document.createElement('canvas');
-            }
+            if (!offscreenRef.current) offscreenRef.current = document.createElement('canvas');
             offscreenRef.current.width = canvasRef.current.width;
             offscreenRef.current.height = canvasRef.current.height;
-
             draw(); 
         } 
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
-      // Handle temporary space-to-pan activation (Figma/Photoshop style)
       if (e.code === 'Space' && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
-        // Prevent default browser scrolling when space is pressed
         e.preventDefault();
-        // If we aren't already in PAN mode and haven't stored a previous tool yet, activate PAN
         if (toolMode !== ToolMode.PAN && !previousToolRef.current) {
           previousToolRef.current = toolMode;
           setToolMode(ToolMode.PAN);
         }
       }
-
-      // Delegate other standard shortcuts to the keyboard handler
-      handleKeyboardShortcuts(
-        e, 
-        setToolMode, 
-        () => { selectedNodeIds.forEach(onDeleteNode); }, 
-        onDuplicateNodes,
-        () => {
-          // Cancel Action: Clear selections
-          onSetLassoPath([]);
-          onSetBrushStrokes([]);
-          onSelectNodes([]);
-        }
-      );
+      handleKeyboardShortcuts(e, setToolMode, () => { selectedNodeIds.forEach(onDeleteNode); }, onDuplicateNodes, () => {
+          onSetLassoPath([]); onSetBrushStrokes([]); onSelectNodes([]);
+      });
     };
 
     const onKeyUp = (e: KeyboardEvent) => {
-      // Detect release of Space bar to restore previous tool
       if (e.code === 'Space' && previousToolRef.current !== null) {
         setToolMode(previousToolRef.current);
         previousToolRef.current = null;
@@ -152,42 +144,31 @@ const CanvasBoard: React.FC<CanvasBoardProps> = ({
 
   useEffect(() => { draw(); }, [draw]);
 
-  // Setup Wheel interaction: Normal scroll for vertical pan, Ctrl+scroll for zoom
+  // Wheel interaction
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      // If Ctrl key (or Meta key on Mac) is held, we perform zooming
-      if (e.ctrlKey || e.metaKey) {
-        setViewport(v => handleWheelZoom(e, v, el.getBoundingClientRect()));
-      } else {
-        // Otherwise, move canvas in vertical direction only
-        setViewport(v => applyPan(v, 0, -e.deltaY));
-      }
+      if (e.ctrlKey || e.metaKey) setViewport(v => handleWheelZoom(e, v, el.getBoundingClientRect()));
+      else setViewport(v => applyPan(v, 0, -e.deltaY));
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
   }, []);
 
-  // Global mouse up safety and marquee finalization
+  // Global mouse up
   useEffect(() => {
     const onGlobalMouseUp = () => {
-      // If a drag/resize action finished, commit the initial snapshot to history
       if ((currentAction === EditorAction.DRAGGING || currentAction === EditorAction.RESIZING) && initialNodesRef.current) {
-        // Only commit if the state actually changed to avoid empty undo steps
         const currentNodesStr = JSON.stringify(nodes);
         const initialNodesStr = JSON.stringify(initialNodesRef.current);
-        if (currentNodesStr !== initialNodesStr) {
-          onPushHistory(initialNodesRef.current);
-        }
+        if (currentNodesStr !== initialNodesStr) onPushHistory(initialNodesRef.current);
       }
-
       if (currentAction === EditorAction.MARQUEE && marquee) {
         const selectedIds = findNodesInMarquee(marquee.start, marquee.end, nodes);
         onSelectNodes(selectedIds);
       }
-      
       setCurrentAction(EditorAction.IDLE); 
       setActiveHandle(null);
       setMarquee(null);
@@ -207,21 +188,11 @@ const CanvasBoard: React.FC<CanvasBoardProps> = ({
   const handleMouseDown = (e: React.MouseEvent) => {
     const { pos, worldPos } = getMouseInfo(e);
     setLastMousePos(pos);
-    
-    // Capture snapshot for history before starting any action
     initialNodesRef.current = [...nodes];
-    
-    // Clear opposite selection types if switching modes
     if (toolMode === ToolMode.LASSO && brushStrokes.length > 0) onSetBrushStrokes([]);
     if (toolMode === ToolMode.BRUSH && lassoPath.length > 0) onSetLassoPath([]);
-
-    const action = handleMouseDownAction(
-        worldPos, toolMode, nodes, selectedNodeIds, activeHandle, 
-        onSelectNode, onSetLassoPath, onSetBrushStrokes, brushStrokes
-    );
-    if (action === EditorAction.MARQUEE) {
-      setMarquee({ start: worldPos, end: worldPos });
-    }
+    const action = handleMouseDownAction(worldPos, toolMode, nodes, selectedNodeIds, activeHandle, onSelectNode, onSetLassoPath, onSetBrushStrokes, brushStrokes);
+    if (action === EditorAction.MARQUEE) setMarquee({ start: worldPos, end: worldPos });
     setCurrentAction(action);
   };
 
@@ -229,34 +200,17 @@ const CanvasBoard: React.FC<CanvasBoardProps> = ({
     const { pos, worldPos } = getMouseInfo(e);
     const dx = pos.x - lastMousePos.x;
     const dy = pos.y - lastMousePos.y;
-    
     const selectedNodes = nodes.filter(n => selectedNodeIds.includes(n.id));
-
-    handleMouseMoveAction(
-        worldPos, dx, dy, currentAction, viewport, 
-        selectedNodes,
-        activeHandle, lassoPath, brushStrokes,
-        onUpdateNodes, onSetLassoPath, onSetBrushStrokes,
-        (pdx, pdy) => setViewport(v => applyPan(v, pdx, pdy)),
-        (mPos) => setMarquee(prev => prev ? { ...prev, end: mPos } : null)
-    );
+    handleMouseMoveAction(worldPos, dx, dy, currentAction, viewport, selectedNodes, activeHandle, lassoPath, brushStrokes, onUpdateNodes, onSetLassoPath, onSetBrushStrokes, (pdx, pdy) => setViewport(v => applyPan(v, pdx, pdy)), (mPos) => setMarquee(prev => prev ? { ...prev, end: mPos } : null));
     setLastMousePos(pos);
   };
 
-  const cursorStyle = getCursorForHover(
-    screenToWorld(lastMousePos, viewport), nodes, toolMode, currentAction, activeHandle, selectedNodeIds.length > 0
-  );
+  const cursorStyle = getCursorForHover(screenToWorld(lastMousePos, viewport), nodes, toolMode, currentAction, activeHandle, selectedNodeIds.length > 0);
 
   return (
     <div ref={containerRef} className="flex-1 bg-bk-60 relative overflow-hidden" style={{ cursor: cursorStyle }}>
       <canvas ref={canvasRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} className="block w-full h-full" />
-      
-      <SelectionOverlay 
-        selectedNodes={nodes.filter(n => selectedNodeIds.includes(n.id))} 
-        viewport={viewport}
-        onResizeStart={(h) => { setActiveHandle(h); setCurrentAction(EditorAction.RESIZING); }}
-      />
-
+      <SelectionOverlay selectedNodes={nodes.filter(n => selectedNodeIds.includes(n.id))} viewport={viewport} onResizeStart={(h) => { setActiveHandle(h); setCurrentAction(EditorAction.RESIZING); }} />
       <div className="absolute top-4 right-4 bg-bk-60/80 px-2 py-1 rounded text-[10px] text-fg-70 font-mono pointer-events-none border border-bd-50">
         {Math.round(viewport.zoom * 100)}%
       </div>
