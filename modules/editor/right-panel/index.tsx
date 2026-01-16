@@ -12,9 +12,10 @@ interface RightPanelProps {
   onDetach: () => void;
   onPlace: () => void;
   onRemoveBg: () => void;
+  onErase: () => void;
   onEditText: () => void;
   isProcessing: boolean;
-  processingTool: 'detach' | 'place' | 'text' | 'remove-bg' | null;
+  processingTool: 'detach' | 'place' | 'text' | 'remove-bg' | 'erase' | null;
   hasSelection: boolean;
   hasTextBlocks: boolean;
   hasTextChanged: boolean;
@@ -33,6 +34,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
   onDetach,
   onPlace,
   onRemoveBg,
+  onErase,
   onEditText,
   isProcessing,
   processingTool,
@@ -58,6 +60,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
         onDetach={onDetach}
         onPlace={onPlace}
         onRemoveBg={onRemoveBg}
+        onErase={onErase}
         onEditText={onEditText}
         isProcessing={isProcessing}
         processingTool={processingTool}

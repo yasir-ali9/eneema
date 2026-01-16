@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { EditorNode } from '../../core/types.ts';
 import { LayoutSection } from './layout/index.tsx';
@@ -12,9 +13,10 @@ interface PropertiesPanelProps {
   onDetach: () => void;
   onPlace: () => void;
   onRemoveBg: () => void;
+  onErase: () => void;
   onEditText: () => void;
   isProcessing: boolean;
-  processingTool: 'detach' | 'place' | 'text' | 'remove-bg' | null;
+  processingTool: 'detach' | 'place' | 'text' | 'remove-bg' | 'erase' | null;
   hasSelection: boolean;
   hasTextBlocks: boolean;
   hasTextChanged: boolean;
@@ -32,6 +34,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   onDetach,
   onPlace,
   onRemoveBg,
+  onErase,
   onEditText,
   isProcessing,
   processingTool,
@@ -78,13 +81,12 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         onDetach={onDetach}
         onPlace={onPlace}
         onRemoveBg={onRemoveBg}
-        onEditText={onEditText}
+        onErase={onErase}
+        // Removed onEditText, hasTextBlocks, and hasTextChanged as they are not used in InstantTools
         isProcessing={isProcessing}
         processingTool={processingTool}
         hasSelection={hasSelection}
         hasActiveNode={true}
-        hasTextBlocks={hasTextBlocks}
-        hasTextChanged={hasTextChanged}
         canPlace={canPlace}
       />
       

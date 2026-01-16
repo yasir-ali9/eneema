@@ -10,6 +10,7 @@ import { DetachTool } from '../tools/detach/index.ts';
 import { PlaceTool } from '../tools/place/index.ts';
 import { EditTextTool } from '../tools/edit-text/index.ts';
 import { RemoveBgTool } from '../tools/remove-bg/index.ts';
+import { EraseTool } from '../tools/erase/index.ts';
 import { ToolExecutionContext } from '../tools/types.ts';
 import { Button } from '../../../components/button/default.tsx';
 import { Key } from 'lucide-react';
@@ -27,7 +28,7 @@ const EditorRoot: React.FC = () => {
   const [brushStrokes, setBrushStrokes] = useState<Point[][]>([]);
   
   // Track which specific tool is currently processing
-  const [processingTool, setProcessingTool] = useState<'detach' | 'place' | 'text' | 'remove-bg' | null>(null);
+  const [processingTool, setProcessingTool] = useState<'detach' | 'place' | 'text' | 'remove-bg' | 'erase' | null>(null);
   
   const [projectName, setProjectName] = useState("Gemini 3 Project");
   const [showGrid, setShowGrid] = useState(false);
@@ -176,6 +177,18 @@ const EditorRoot: React.FC = () => {
     }
   };
 
+  // Executes the AI Erase tool logic
+  const handleErase = async () => {
+    setProcessingTool('erase');
+    try {
+      await EraseTool.execute(toolContext);
+    } catch (err) {
+      console.error("AI Erase Error:", err);
+    } finally {
+      setProcessingTool(null);
+    }
+  };
+
   // Executes the AI Place (Smart Blend) tool logic
   const handlePlace = async () => {
     setProcessingTool('place');
@@ -277,6 +290,7 @@ const EditorRoot: React.FC = () => {
         onDetach={handleDetach}
         onPlace={handlePlace}
         onRemoveBg={handleRemoveBg}
+        onErase={handleErase}
         onEditText={handleUpdateText}
         isProcessing={!!processingTool}
         processingTool={processingTool}
