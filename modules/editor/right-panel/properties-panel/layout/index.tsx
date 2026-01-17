@@ -1,6 +1,7 @@
 import React from 'react';
 import { EditorNode } from '../../../../core/types.ts';
 import { PropertyInput } from '../../../../../components/input/property.tsx';
+import { Tooltip } from '../../../../../components/tooltip.tsx';
 
 interface LayoutSectionProps {
   node: EditorNode;
@@ -34,45 +35,57 @@ export const LayoutSection: React.FC<LayoutSectionProps> = ({ node, onUpdate }) 
       </div>
       
       <div className="grid grid-cols-3 gap-2">
-        {/* Row 1: Position and Angle */}
-        <PropertyInput 
-            label="X" 
-            value={node.x} 
-            onChange={(v) => onUpdate({ x: v })} 
-        />
-        <PropertyInput 
-            label="Y" 
-            value={node.y} 
-            onChange={(v) => onUpdate({ y: v })} 
-        />
-        <PropertyInput 
-            icon={<AngleIcon />} 
-            value={node.rotation} 
-            unit="°"
-            onChange={(v) => onUpdate({ rotation: v })} 
-        />
+        {/* Row 1: Position and Angle - Showing tooltips above with reduced offset */}
+        <Tooltip content="Position X" position="top" offset={6}>
+          <PropertyInput 
+              label="X" 
+              value={node.x} 
+              onChange={(v) => onUpdate({ x: v })} 
+          />
+        </Tooltip>
+        <Tooltip content="Position Y" position="top" offset={6}>
+          <PropertyInput 
+              label="Y" 
+              value={node.y} 
+              onChange={(v) => onUpdate({ y: v })} 
+          />
+        </Tooltip>
+        <Tooltip content="Rotation Angle" position="top" offset={6}>
+          <PropertyInput 
+              icon={<AngleIcon />} 
+              value={node.rotation} 
+              unit="°"
+              onChange={(v) => onUpdate({ rotation: v })} 
+          />
+        </Tooltip>
 
-        {/* Row 2: Dimensions and Opacity */}
-        <PropertyInput 
-            label="W" 
-            value={node.width} 
-            min={1} 
-            onChange={(v) => onUpdate({ width: v })} 
-        />
-        <PropertyInput 
-            label="H" 
-            value={node.height} 
-            min={1} 
-            onChange={(v) => onUpdate({ height: v })} 
-        />
-        <PropertyInput 
-            icon={<OpacityIcon />} 
-            value={Math.round(node.opacity * 100)} 
-            unit="%"
-            min={0}
-            max={100}
-            onChange={(v) => onUpdate({ opacity: v / 100 })} 
-        />
+        {/* Row 2: Dimensions and Opacity - Showing tooltips below per user request */}
+        <Tooltip content="Width" position="bottom" offset={6}>
+          <PropertyInput 
+              label="W" 
+              value={node.width} 
+              min={1} 
+              onChange={(v) => onUpdate({ width: v })} 
+          />
+        </Tooltip>
+        <Tooltip content="Height" position="bottom" offset={6}>
+          <PropertyInput 
+              label="H" 
+              value={node.height} 
+              min={1} 
+              onChange={(v) => onUpdate({ height: v })} 
+          />
+        </Tooltip>
+        <Tooltip content="Opacity" position="bottom" offset={6}>
+          <PropertyInput 
+              icon={<OpacityIcon />} 
+              value={Math.round(node.opacity * 100)} 
+              unit="%"
+              min={0}
+              max={100}
+              onChange={(v) => onUpdate({ opacity: v / 100 })} 
+          />
+        </Tooltip>
       </div>
     </div>
   );

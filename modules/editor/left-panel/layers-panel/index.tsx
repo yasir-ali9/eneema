@@ -2,6 +2,7 @@ import React from 'react';
 import { EditorNode } from '../../core/types.ts';
 import { Trash2 } from 'lucide-react';
 import { Button } from '../../../../components/button/default.tsx';
+import { Tooltip } from '../../../../components/tooltip.tsx';
 
 interface LayersPanelProps {
   nodes: EditorNode[];
@@ -49,15 +50,17 @@ const LayersPanel: React.FC<LayersPanelProps> = ({ nodes, selectedNodeIds, onSel
                 <p className="text-[9px] text-fg-70 capitalize tracking-tighter">Node ({node.type})</p>
               </div>
               
-              {/* Delete action for the node */}
-              <Button 
-                variant="danger" 
-                size="icon" 
-                className="opacity-0 group-hover:opacity-100 h-7 w-7 transition-opacity"
-                onClick={(e) => { e.stopPropagation(); onDeleteNode(node.id); }}
-              >
-                <Trash2 size={12} />
-              </Button>
+              {/* Delete action for the node - Upgraded to Tooltip */}
+              <Tooltip content="Delete Layer" position="top">
+                <Button 
+                  variant="danger" 
+                  size="icon" 
+                  className="opacity-0 group-hover:opacity-100 h-7 w-7 transition-opacity"
+                  onClick={(e) => { e.stopPropagation(); onDeleteNode(node.id); }}
+                >
+                  <Trash2 size={12} />
+                </Button>
+              </Tooltip>
             </div>
           );
         })}

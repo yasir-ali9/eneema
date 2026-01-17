@@ -42,7 +42,7 @@ export const InstantTools: React.FC<InstantToolsProps> = ({
       </div>
 
       <div className="grid grid-cols-3 gap-2">
-        {/* Row 1: Detach, Place, and Erase (Order updated to Detach -> Place -> Erase) */}
+        {/* Row 1: Detach, Place, and Erase - Tooltips now above */}
         <ActionButton
           label="Detach"
           icon={<Scissors size={13} />}
@@ -50,7 +50,9 @@ export const InstantTools: React.FC<InstantToolsProps> = ({
           disabled={!hasSelection || isHardLocked}
           loading={processingTool === 'detach'}
           colSpan={1}
-          title="Extract selected object from background"
+          title="Extract selected object"
+          tooltipPosition="top"
+          tooltipOffset={8}
         />
 
         <ActionButton
@@ -60,7 +62,9 @@ export const InstantTools: React.FC<InstantToolsProps> = ({
           disabled={!canPlace || isHardLocked}
           loading={processingTool === 'place'}
           colSpan={1}
-          title="Seamlessly blend foreground into overlapping background"
+          title="Blend foreground"
+          tooltipPosition="top"
+          tooltipOffset={8}
         />
 
         <ActionButton
@@ -70,10 +74,12 @@ export const InstantTools: React.FC<InstantToolsProps> = ({
           disabled={!hasSelection || isHardLocked}
           loading={processingTool === 'erase'}
           colSpan={1}
-          title="Generative erase selected area using AI"
+          title="Generative erase"
+          tooltipPosition="top"
+          tooltipOffset={8}
         />
 
-        {/* Row 2: Remove BG AI (Full width for emphasis) */}
+        {/* Row 2: Remove BG AI - Tooltip now above */}
         <ActionButton
           label="Remove Background"
           icon={<SquareMinus size={13} />}
@@ -81,7 +87,9 @@ export const InstantTools: React.FC<InstantToolsProps> = ({
           disabled={isHardLocked}
           loading={processingTool === 'remove-bg'}
           colSpan={3}
-          title="AI-powered background removal"
+          title="AI Background Removal"
+          tooltipPosition="top"
+          tooltipOffset={8}
         />
       </div>
     </div>

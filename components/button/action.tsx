@@ -1,4 +1,5 @@
 import React from 'react';
+import { Tooltip, TooltipPosition } from '../tooltip.tsx';
 
 interface ActionButtonProps {
   label: string;
@@ -9,12 +10,14 @@ interface ActionButtonProps {
   colSpan?: 1 | 2 | 3;
   className?: string;
   title?: string;
+  tooltipPosition?: TooltipPosition; // Single line comment: Custom position for the integrated tooltip.
+  tooltipOffset?: number; // Single line comment: Custom offset for the integrated tooltip.
 }
 
 /**
  * ActionButton Component
  * Features a shimmer effect that indicates processing without hiding content.
- * Single line comment: Ensures text and icons remain visible at reduced opacity during AI tasks.
+ * Single line comment: Integrated custom Tooltip with configurable placement.
  */
 export const ActionButton: React.FC<ActionButtonProps> = ({
   label,
@@ -24,7 +27,9 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
   loading = false,
   colSpan = 1,
   className = '',
-  title
+  title,
+  tooltipPosition = "left", // Single line comment: Default to left for sidebar usage.
+  tooltipOffset = 10 // Single line comment: Default offset.
 }) => {
   // Map colSpan to tailwind grid-column classes
   const spanClass = {
@@ -33,14 +38,13 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
     3: 'col-span-3'
   }[colSpan];
 
-  return (
+  const content = (
     <button
       onClick={onClick}
       // Button is disabled functionally during its own loading or when explicitly disabled
       disabled={disabled || loading}
-      title={title}
       className={`
-        ${spanClass}
+        w-full
         relative flex items-center justify-start
         h-[26px] rounded
         bg-bk-40 border border-bd-50 
@@ -80,5 +84,15 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
         </span>
       </div>
     </button>
+  );
+
+  return (
+    <div className={spanClass}>
+      {title ? (
+        <Tooltip content={title} position={tooltipPosition} offset={tooltipOffset}>
+          {content}
+        </Tooltip>
+      ) : content}
+    </div>
   );
 };

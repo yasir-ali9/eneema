@@ -63,7 +63,9 @@ export const TextSection: React.FC<TextSectionProps> = ({
             loading={processingTool === 'text'}
             disabled={isProcessing && processingTool !== 'text'}
             colSpan={3}
-            title="Regenerate image with modified text content"
+            title="Regenerate image with modified text"
+            tooltipPosition="top"
+            tooltipOffset={8}
           />
         </div>
       )}
