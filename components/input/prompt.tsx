@@ -93,7 +93,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         <button
           onClick={() => inputValue.trim() && onSubmit(inputValue)}
           disabled={disabled || !inputValue.trim()}
-          className="flex items-center justify-center px-4 h-7 rounded-lg bg-ac-01 hover:bg-ac-02 text-fg-30 text-[11px] font-semibold transition-all disabled:opacity-30 disabled:grayscale"
+          className="flex items-center justify-center px-4 h-7 rounded-lg bg-ac-01 hover:bg-ac-02 text-fg-30 text-[12px] font-semibold transition-all disabled:opacity-30 disabled:grayscale"
         >
           Go
         </button>
