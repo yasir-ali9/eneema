@@ -1,5 +1,5 @@
 import React from 'react';
-import { Scissors, Stamp, SquareMinus, Eraser } from 'lucide-react';
+import { Scissors, Stamp, SquareMinus, Eraser, Zap } from 'lucide-react';
 import { ActionButton } from '../../../../../components/button/action.tsx';
 
 interface InstantToolsProps {
@@ -7,8 +7,9 @@ interface InstantToolsProps {
   onPlace: () => void;
   onRemoveBg: () => void;
   onErase: () => void;
+  onUpscale: () => void; // Single line comment: Callback for upscale action.
   isProcessing: boolean;
-  processingTool: 'detach' | 'place' | 'text' | 'remove-bg' | 'erase' | null;
+  processingTool: 'detach' | 'place' | 'text' | 'remove-bg' | 'erase' | 'upscale' | null;
   hasSelection: boolean;
   hasActiveNode: boolean;
   canPlace: boolean;
@@ -16,13 +17,15 @@ interface InstantToolsProps {
 
 /**
  * InstantTools Section
- * Centralizes primary AI action buttons in a compact, organized grid.
+ * Centralizes primary AI action buttons in a compact, organized 3x2 grid.
+ * Single line comment: Spans and gaps are synchronized with the Layout section for consistent aesthetics.
  */
 export const InstantTools: React.FC<InstantToolsProps> = ({
   onDetach,
   onPlace,
   onRemoveBg,
   onErase,
+  onUpscale,
   isProcessing,
   processingTool,
   hasSelection,
@@ -42,7 +45,7 @@ export const InstantTools: React.FC<InstantToolsProps> = ({
       </div>
 
       <div className="grid grid-cols-3 gap-2">
-        {/* Row 1: Detach, Place, and Erase - Tooltips now above */}
+        {/* Row 1: Detach, Place, and Erase (1+1+1) */}
         <ActionButton
           label="Detach"
           icon={<Scissors size={13} />}
@@ -79,15 +82,27 @@ export const InstantTools: React.FC<InstantToolsProps> = ({
           tooltipOffset={8}
         />
 
-        {/* Row 2: Remove BG AI - Tooltip now above */}
+        {/* Row 2: Remove BG AI (2) & Upscale (1) - Completes the 3x2 inspired grid */}
         <ActionButton
           label="Remove Background"
           icon={<SquareMinus size={13} />}
           onClick={onRemoveBg}
           disabled={isHardLocked}
           loading={processingTool === 'remove-bg'}
-          colSpan={3}
+          colSpan={2}
           title="AI Background Removal"
+          tooltipPosition="top"
+          tooltipOffset={8}
+        />
+
+        <ActionButton
+          label="Upscale"
+          icon={<Zap size={13} />}
+          onClick={onUpscale}
+          disabled={isHardLocked}
+          loading={processingTool === 'upscale'}
+          colSpan={1}
+          title="Enhance resolution to 4K"
           tooltipPosition="top"
           tooltipOffset={8}
         />

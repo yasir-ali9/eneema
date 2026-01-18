@@ -11,8 +11,13 @@ export type TooltipPosition =
   | "bottom-left"
   | "bottom-right";
 
-interface TooltipProps {
-  children: ReactNode;
+/**
+ * TooltipProps Interface
+ * Exported to allow consumers to reference the prop types.
+ * Single line comment: children is made optional to resolve TypeScript inference issues in some JSX environments.
+ */
+export interface TooltipProps {
+  children?: ReactNode;
   content: string;
   position?: TooltipPosition;
   delay?: number;
@@ -21,6 +26,11 @@ interface TooltipProps {
   offset?: number; // Single line comment: Custom distance from the trigger element.
 }
 
+/**
+ * Tooltip Component
+ * Displays helpful text when hovering over elements.
+ * Updated: Wrapper is now block and w-full to fill grid cells correctly.
+ */
 export function Tooltip({
   children,
   content,
@@ -36,6 +46,7 @@ export function Tooltip({
   const timeoutRef = useRef<number | null>(null);
   const [mounted, setMounted] = useState(false);
 
+  // Single line comment: Helper function to calculate position if needed on window events.
   const updateTooltipPosition = () => {
     if (!containerRef.current) return;
     containerRef.current.getBoundingClientRect();
@@ -81,6 +92,7 @@ export function Tooltip({
     };
   }, [isVisible]);
 
+  // Single line comment: Calculates dynamic styles for tooltip placement with viewport boundary checks.
   const getTooltipStyle = () => {
     if (!containerRef.current) return {};
 
@@ -193,7 +205,7 @@ export function Tooltip({
     <>
       <div
         ref={containerRef}
-        className={`relative inline-block ${className}`}
+        className={`relative block w-full ${className}`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >

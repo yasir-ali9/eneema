@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { EditorNode } from '../../core/types.ts';
 import { LayoutSection } from './layout/index.tsx';
@@ -14,9 +13,10 @@ interface PropertiesPanelProps {
   onPlace: () => void;
   onRemoveBg: () => void;
   onErase: () => void;
+  onUpscale: () => void; // Single line comment: New upscale action.
   onEditText: () => void;
   isProcessing: boolean;
-  processingTool: 'detach' | 'place' | 'text' | 'remove-bg' | 'erase' | null;
+  processingTool: 'detach' | 'place' | 'text' | 'remove-bg' | 'erase' | 'upscale' | null;
   hasSelection: boolean;
   hasTextBlocks: boolean;
   hasTextChanged: boolean;
@@ -35,6 +35,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
   onPlace,
   onRemoveBg,
   onErase,
+  onUpscale,
   onEditText,
   isProcessing,
   processingTool,
@@ -82,6 +83,7 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         onPlace={onPlace}
         onRemoveBg={onRemoveBg}
         onErase={onErase}
+        onUpscale={onUpscale}
         // Removed onEditText, hasTextBlocks, and hasTextChanged as they are not used in InstantTools
         isProcessing={isProcessing}
         processingTool={processingTool}

@@ -11,6 +11,7 @@ import { PlaceTool } from '../tools/place/index.ts';
 import { EditTextTool } from '../tools/edit-text/index.ts';
 import { RemoveBgTool } from '../tools/remove-bg/index.ts';
 import { EraseTool } from '../tools/erase/index.ts';
+import { UpscaleTool } from '../tools/upscale/index.ts';
 import { ToolExecutionContext } from '../tools/types.ts';
 import { Button } from '../../../components/button/default.tsx';
 import { Key } from 'lucide-react';
@@ -29,7 +30,7 @@ const EditorRoot: React.FC = () => {
   // Single line comment: Viewport state elevated to EditorRoot for sharing with sidebar components.
   const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, zoom: 1 });
   
-  const [processingTool, setProcessingTool] = useState<'detach' | 'place' | 'text' | 'remove-bg' | 'erase' | null>(null);
+  const [processingTool, setProcessingTool] = useState<'detach' | 'place' | 'text' | 'remove-bg' | 'erase' | 'upscale' | null>(null);
   // Single line comment: Explicitly track which node is shimmering to prevent shimmer loss on deselection.
   const [activeProcessingNodeId, setActiveProcessingNodeId] = useState<string | null>(null);
   
@@ -165,6 +166,12 @@ const EditorRoot: React.FC = () => {
     try { await RemoveBgTool.execute(toolContext); } finally { setProcessingTool(null); setActiveProcessingNodeId(null); }
   };
 
+  const handleUpscale = async () => {
+    setProcessingTool('upscale');
+    setActiveProcessingNodeId(selectedNodeIds[0]);
+    try { await UpscaleTool.execute(toolContext); } finally { setProcessingTool(null); setActiveProcessingNodeId(null); }
+  };
+
   const handleUpdateText = async () => {
     setProcessingTool('text');
     // Single line comment: Manual text updates trigger the shimmer effect.
@@ -217,6 +224,7 @@ const EditorRoot: React.FC = () => {
         nodes={nodes} selectedNodeIds={selectedNodeIds} onUpdateNodes={handleUpdateNodes}
         onPushHistory={() => pushHistory(nodes)} onDetach={handleDetach}
         onPlace={handlePlace} onRemoveBg={handleRemoveBg} onErase={handleErase}
+        onUpscale={handleUpscale}
         onEditText={handleUpdateText} isProcessing={!!processingTool}
         processingTool={processingTool} hasSelection={hasSelection}
         hasTextBlocks={hasTextBlocks} hasTextChanged={hasTextChanged} canPlace={canPlace}

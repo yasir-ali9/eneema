@@ -15,7 +15,7 @@ interface PropertyInputProps {
 /**
  * PropertyInput Component
  * Precision input for numeric properties with localized unit formatting and keyboard shortcuts.
- * Updated with unified selection and placeholder styles.
+ * Updated with w-full to ensure grid consistency.
  */
 export const PropertyInput: React.FC<PropertyInputProps> = ({
   label,
@@ -130,7 +130,7 @@ export const PropertyInput: React.FC<PropertyInputProps> = ({
   };
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <div className="relative flex items-center bg-bk-40 rounded border border-bd-50 hover:border-bd-60 focus-within:border-bd-50 focus-within:shadow-[0_0_0_2px_rgb(var(--ac-02))] h-[26px]">
         {(icon || label) && (
           <div className="flex items-center justify-center shrink-0 pl-1.5 pr-1 pointer-events-none">

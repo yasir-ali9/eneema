@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Tooltip, TooltipPosition } from '../tooltip.tsx';
 
@@ -28,7 +29,7 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
   colSpan = 1,
   className = '',
   title,
-  tooltipPosition = "left", // Single line comment: Default to left for sidebar usage.
+  tooltipPosition = "left" as TooltipPosition, // Single line comment: Explicitly cast to TooltipPosition to satisfy string union requirements.
   tooltipOffset = 10 // Single line comment: Default offset.
 }) => {
   // Map colSpan to tailwind grid-column classes

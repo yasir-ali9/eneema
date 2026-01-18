@@ -13,9 +13,10 @@ interface RightPanelProps {
   onPlace: () => void;
   onRemoveBg: () => void;
   onErase: () => void;
+  onUpscale: () => void; // Single line comment: New upscale action.
   onEditText: () => void;
   isProcessing: boolean;
-  processingTool: 'detach' | 'place' | 'text' | 'remove-bg' | 'erase' | null;
+  processingTool: 'detach' | 'place' | 'text' | 'remove-bg' | 'erase' | 'upscale' | null;
   hasSelection: boolean;
   hasTextBlocks: boolean;
   hasTextChanged: boolean;
@@ -35,6 +36,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
   onPlace,
   onRemoveBg,
   onErase,
+  onUpscale,
   onEditText,
   isProcessing,
   processingTool,
@@ -61,6 +63,7 @@ const RightPanel: React.FC<RightPanelProps> = ({
         onPlace={onPlace}
         onRemoveBg={onRemoveBg}
         onErase={onErase}
+        onUpscale={onUpscale}
         onEditText={onEditText}
         isProcessing={isProcessing}
         processingTool={processingTool}
