@@ -14,6 +14,7 @@ interface CentralAreaProps {
   brushStrokes: Point[][];
   setBrushStrokes: (strokes: Point[][]) => void;
   onUpdateNodes: (nodes: EditorNode[]) => void;
+  onSetNodes: (updater: EditorNode[] | ((prev: EditorNode[]) => EditorNode[])) => void; // Single line comment: Raw state setter for operations that add/remove nodes.
   onPushHistory: (snapshot: EditorNode[]) => void;
   onDeleteNode: (id: string) => void;
   onDuplicateNodes: () => void;
@@ -21,13 +22,13 @@ interface CentralAreaProps {
   processingNodeId: string | null;
   setCanvasRef: (ref: HTMLCanvasElement | null) => void;
   showGrid: boolean;
-  viewport: Viewport; // Single line comment: Viewport received from core.
-  onUpdateViewport: (viewport: Viewport | ((prev: Viewport) => Viewport)) => void; // Single line comment: Viewport update handler.
+  viewport: Viewport;
+  onUpdateViewport: (viewport: Viewport | ((prev: Viewport) => Viewport)) => void;
 }
 
 /**
  * CentralArea Component
- * Wraps the canvas workspace and the new AI-integrated dock.
+ * Orchestrates the canvas and the AI-integrated functional Dock.
  */
 const CentralArea: React.FC<CentralAreaProps> = (props) => {
   return (
@@ -63,12 +64,21 @@ const CentralArea: React.FC<CentralAreaProps> = (props) => {
         setCanvasRef={props.setCanvasRef} 
         showGrid={props.showGrid}
         processingNodeId={props.processingNodeId}
-        viewport={props.viewport} // Single line comment: Pass shared viewport to canvas.
-        onSetViewport={props.onUpdateViewport} // Single line comment: Pass shared setter to canvas.
+        viewport={props.viewport}
+        onSetViewport={props.onUpdateViewport}
       />
       
-      {/* Unified AI Command Dock */}
-      <Dock />
+      {/* Unified AI Command Dock - Fixed setNodes prop to use the raw setter instead of the partial updater */}
+      <Dock 
+        nodes={props.nodes}
+        selectedNodeIds={props.selectedNodeIds}
+        pushHistory={props.onPushHistory}
+        setNodes={props.onSetNodes}
+        setSelectedNodeIds={props.setSelectedNodeIds}
+        setLassoPath={props.setLassoPath}
+        setBrushStrokes={props.setBrushStrokes}
+        setToolMode={props.setToolMode}
+      />
     </div>
   );
 };

@@ -5,22 +5,26 @@ interface PromptInputProps {
   value: string;
   onChange: (value: string) => void;
   onSubmit: (value: string) => void;
+  contextImages?: string[]; // Single line comment: Prop for showing active selection context thumbnails.
   placeholder?: string;
   disabled?: boolean;
+  loading?: boolean; // Single line comment: Prop for submission state handling.
   className?: string;
 }
 
 /**
  * PromptInput Component
- * AI interaction primitive designed to match the DescriptiveInput aesthetic.
- * Updated: Increased border-radius to 14px and reduced horizontal padding to 7px.
+ * AI interaction primitive with context awareness and refined aesthetics.
+ * Updated: Border-radius at 14px, solid border-bd-50 for context bar, and medium button text.
  */
 export const PromptInput: React.FC<PromptInputProps> = ({
   value,
   onChange,
   onSubmit,
+  contextImages = [],
   placeholder = "Modify or generate an image with Gemini 3",
   disabled = false,
+  loading = false,
   className = "",
 }) => {
   const [inputValue, setInputValue] = useState(value);
@@ -31,24 +35,14 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     setInputValue(value);
   }, [value]);
 
-  // Single line comment: Advanced auto-resize logic to prevent scrollbar flickering.
+  // Single line comment: Advanced auto-resize logic for the prompt area.
   useEffect(() => {
     if (textareaRef.current) {
-      // 1. Reset height to auto to get an accurate scrollHeight measurement
       textareaRef.current.style.height = "auto";
-      
       const scrollHeight = textareaRef.current.scrollHeight;
-      const maxHeight = 120; // Single line comment: Max height for multi-line inputs.
-
-      // 2. Apply the new height capped at maxHeight
+      const maxHeight = 120;
       textareaRef.current.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
-
-      // 3. Toggle overflow visibility only when text exceeds the max height
-      if (scrollHeight > maxHeight) {
-        textareaRef.current.style.overflowY = "auto";
-      } else {
-        textareaRef.current.style.overflowY = "hidden";
-      }
+      textareaRef.current.style.overflowY = scrollHeight > maxHeight ? "auto" : "hidden";
     }
   }, [inputValue]);
 
@@ -58,44 +52,71 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Single line comment: Support power-user submission pattern (Ctrl/Cmd + Enter).
+    // Single line comment: Support Ctrl/Cmd + Enter for submission.
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
-      if (inputValue.trim()) onSubmit(inputValue);
+      if (inputValue.trim() && !loading) onSubmit(inputValue);
     }
   };
 
   return (
-    <div className={`flex flex-col w-full px-1 py-1.5 bg-bk-50 border border-bd-50 rounded-[14px] ${className}`}>
-      {/* Top Section: Main Text Input Area - Reduced horizontal padding by 1px (from 8px to 7px) */}
+    <div className={`flex flex-col w-full p-1 bg-bk-50 border border-bd-50 rounded-[14px] shadow-2xl transition-all ${className}`}>
+      
+      {/* Context Area: Thumbnails of selected images - Assigned solid border-bd-50 as requested */}
+      {contextImages.length > 0 && (
+        <div className="flex items-center gap-2 p-1.5 overflow-x-auto no-scrollbar border-b border-bd-50 mb-1">
+          {contextImages.slice(0, 14).map((src, idx) => (
+            <div 
+              key={idx} 
+              className="relative w-8 h-8 rounded-md border border-bd-50 bg-bk-70 overflow-hidden shrink-0 group"
+            >
+              <img src={src} className="w-full h-full object-cover" alt="context" />
+              <div className="absolute inset-0 bg-ac-01/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+          ))}
+          {contextImages.length > 14 && (
+            <div className="text-[9px] text-fg-70 px-2 font-medium">+{contextImages.length - 14} more</div>
+          )}
+        </div>
+      )}
+
+      {/* Input Area: Refined horizontal padding */}
       <textarea
         ref={textareaRef}
         value={inputValue}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        disabled={disabled}
+        disabled={disabled || loading}
         rows={1}
         className="w-full px-[7px] py-2 bg-transparent text-fg-50 text-[11px] leading-tight focus:outline-none resize-none placeholder:text-fg-70 selection:bg-ac-02 selection:text-white"
         style={{ minHeight: '24px' }}
       />
 
-      {/* Bottom Section: Action Row - Refined gap and medium weight button text */}
-      <div className="flex items-center justify-between mt-1.5 px-1 py-0.5">
+      {/* Action Row: Increased gap and medium weight button text */}
+      <div className="flex items-center justify-between mt-2 px-1 pb-1">
         <button 
           type="button"
-          className="flex items-center justify-center w-6 h-6 rounded-md hover:bg-bk-30 text-fg-70 transition-colors shrink-0"
-          title="Attach context"
+          disabled={disabled || loading}
+          className="flex items-center justify-center w-6 h-6 rounded-md hover:bg-bk-30 text-fg-70 transition-colors shrink-0 disabled:opacity-30"
+          title="Add attachment"
         >
           <Plus size={14} />
         </button>
 
         <button
           onClick={() => inputValue.trim() && onSubmit(inputValue)}
-          disabled={disabled || !inputValue.trim()}
-          className="flex items-center justify-center px-3 h-6 rounded-md bg-ac-01 hover:bg-ac-02 text-fg-30 text-[11px] font-medium transition-all disabled:opacity-30 disabled:grayscale"
+          disabled={disabled || !inputValue.trim() || loading}
+          className={`
+            relative flex items-center justify-center px-4 h-7 rounded-md 
+            bg-ac-01 hover:bg-ac-02 text-fg-30 text-[11px] font-medium transition-all 
+            disabled:opacity-30 disabled:grayscale overflow-hidden
+          `}
         >
-          Go
+          {loading && (
+            <div className="absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          )}
+          <span className={loading ? "opacity-70" : ""}>{loading ? "Thinking..." : "Go"}</span>
         </button>
       </div>
     </div>

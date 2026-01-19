@@ -205,19 +205,21 @@ const EditorRoot: React.FC = () => {
         zoom={viewport.zoom} // Single line comment: Passing the zoom level to the LeftPanel for display in VerticalDock.
       />
       
-      {/* Central workspace - dock props removed as they are now in LeftPanel */}
+      {/* Central workspace - Added onSetNodes to distinguish between raw state changes and partial node property updates */}
       <CentralArea 
         nodes={nodes} toolMode={toolMode} setToolMode={setToolMode}
         selectedNodeIds={selectedNodeIds} setSelectedNodeIds={setSelectedNodeIds}
         lassoPath={lassoPath} setLassoPath={setLassoPath}
         brushStrokes={brushStrokes} setBrushStrokes={setBrushStrokes}
-        onUpdateNodes={handleUpdateNodes} onPushHistory={pushHistory}
+        onUpdateNodes={handleUpdateNodes} 
+        onSetNodes={setNodes}
+        onPushHistory={pushHistory}
         onDeleteNode={handleDeleteNode} onDuplicateNodes={handleDuplicateNodes}
         isProcessing={!!processingTool} processingNodeId={activeProcessingNodeId}
         setCanvasRef={(ref) => { canvasRef.current = ref; }}
         showGrid={showGrid}
-        viewport={viewport} // Single line comment: Shared viewport passed to CentralArea.
-        onUpdateViewport={setViewport} // Single line comment: Propagating viewport changes back up.
+        viewport={viewport} 
+        onUpdateViewport={setViewport} 
       />
       
       <RightPanel 
