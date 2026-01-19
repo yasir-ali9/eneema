@@ -74,25 +74,10 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
 
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-bk-50">
-      {/* Transformation and Layout controls */}
+      {/* Transformation and Layout controls - Always at the top */}
       <LayoutSection node={activeNode} onUpdate={handleNodeUpdate} />
 
-      {/* AI Actions */}
-      <InstantTools 
-        onDetach={onDetach}
-        onPlace={onPlace}
-        onRemoveBg={onRemoveBg}
-        onErase={onErase}
-        onUpscale={onUpscale}
-        // Removed onEditText, hasTextBlocks, and hasTextChanged as they are not used in InstantTools
-        isProcessing={isProcessing}
-        processingTool={processingTool}
-        hasSelection={hasSelection}
-        hasActiveNode={true}
-        canPlace={canPlace}
-      />
-      
-      {/* Dynamic text blocks extracted by AI */}
+      {/* Dynamic text blocks extracted by AI - Appears if text is detected in the image */}
       <TextSection 
         node={activeNode} 
         onUpdate={handleNodeUpdate} 
@@ -100,6 +85,20 @@ export const PropertiesPanel: React.FC<PropertiesPanelProps> = ({
         isProcessing={isProcessing}
         processingTool={processingTool}
         hasTextChanged={hasTextChanged}
+      />
+
+      {/* AI Actions - Moved to the bottom per user request for consistent panel layout */}
+      <InstantTools 
+        onDetach={onDetach}
+        onPlace={onPlace}
+        onRemoveBg={onRemoveBg}
+        onErase={onErase}
+        onUpscale={onUpscale}
+        isProcessing={isProcessing}
+        processingTool={processingTool}
+        hasSelection={hasSelection}
+        hasActiveNode={true}
+        canPlace={canPlace}
       />
     </div>
   );
