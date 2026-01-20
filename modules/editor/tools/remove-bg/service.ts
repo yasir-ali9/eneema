@@ -24,8 +24,8 @@ export const removeBackgroundWithGemini = async (imageBase64: string): Promise<s
     }));
 
     let maskData = null;
-    // Find the generated image part in the response
-    response.candidates?.[0]?.content?.parts.forEach(part => { 
+    // Single line comment: Safely iterate through candidate parts using optional chaining.
+    response.candidates?.[0]?.content?.parts?.forEach(part => { 
         if (part.inlineData) maskData = `data:image/png;base64,${part.inlineData.data}`; 
     });
 

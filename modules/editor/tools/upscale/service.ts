@@ -29,8 +29,8 @@ export const upscaleImageWithGemini = async (imageBase64: string): Promise<strin
     }));
 
     let resultImage = null;
-    // Single line comment: Find the generated high-resolution image part in the response.
-    response.candidates?.[0]?.content?.parts.forEach(part => {
+    // Single line comment: Safely iterate through parts using optional chaining to avoid "forEach of undefined" errors.
+    response.candidates?.[0]?.content?.parts?.forEach(part => {
       if (part.inlineData) {
         resultImage = `data:image/png;base64,${part.inlineData.data}`;
       }

@@ -21,7 +21,6 @@ export const detachObjectWithGemini = async (
     const rawCroppedContext = cleanBase64(croppedContextBase64);
 
     // Stage 1: Reasoning - Identify what is being detached
-    // Explicitly typing the response as GenerateContentResponse to fix 'unknown' type error
     const reasoningResponse: GenerateContentResponse = await withRetry(() => ai.models.generateContent({
       model: GEMINI_REASONING_MODEL,
       contents: {
@@ -34,7 +33,6 @@ export const detachObjectWithGemini = async (
 
     let sceneInfo = { label: "object" };
     try {
-        // Accessing .text as a property on the typed response
         const text = reasoningResponse.text?.replace(/```json|```/g, '').trim() || "{}";
         const match = text.match(/\{.*\}/s);
         if (match) sceneInfo = JSON.parse(match[0]);
@@ -43,7 +41,6 @@ export const detachObjectWithGemini = async (
     console.log("Detected Object(s):", sceneInfo.label);
 
     // Stage 2: Parallel Masking & Inpainting
-    // Providing GenerateContentResponse as a generic to withRetry for correct type inference
     const maskPromise = withRetry<GenerateContentResponse>(() => ai.models.generateContent({
       model: GEMINI_IMAGE_MODEL,
       contents: {
@@ -66,16 +63,15 @@ export const detachObjectWithGemini = async (
       }
     }));
 
-    // Explicitly typing the unpacked array elements to avoid 'unknown' errors later
     const [maskRes, fillRes]: [GenerateContentResponse, GenerateContentResponse] = await Promise.all([maskPromise, fillPromise]);
 
     let maskData = null, bgData = null;
     
-    // Safely iterate through candidate parts to find generated images in typed responses
-    maskRes.candidates?.[0]?.content?.parts.forEach(part => { 
+    // Single line comment: Added optional chaining to prevent "forEach of undefined" errors.
+    maskRes.candidates?.[0]?.content?.parts?.forEach(part => { 
         if (part.inlineData) maskData = `data:image/png;base64,${part.inlineData.data}`; 
     });
-    fillRes.candidates?.[0]?.content?.parts.forEach(part => { 
+    fillRes.candidates?.[0]?.content?.parts?.forEach(part => { 
         if (part.inlineData) bgData = `data:image/png;base64,${part.inlineData.data}`; 
     });
 

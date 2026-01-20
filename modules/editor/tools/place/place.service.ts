@@ -16,7 +16,6 @@ export const placeObjectWithGemini = async (
     const rawComposite = cleanBase64(await resizeImageForApi(compositeBase64, 1024));
     const rawMask = cleanBase64(await resizeImageForApi(maskBase64, 1024));
 
-    // Typing response as GenerateContentResponse to fix 'unknown' error when accessing .candidates
     const response: GenerateContentResponse = await withRetry(() => ai.models.generateContent({
       model: GEMINI_IMAGE_MODEL,
       contents: {
@@ -29,12 +28,12 @@ export const placeObjectWithGemini = async (
     }));
 
     let resultImage = null;
-    // Safely iterate through candidates using the typed response object
-    response.candidates?.[0]?.content?.parts.forEach(part => {
+    // Single line comment: Added optional chaining to prevent "forEach of undefined" crashes.
+    response.candidates?.[0]?.content?.parts?.forEach(part => {
         if (part.inlineData) resultImage = `data:image/png;base64,${part.inlineData.data}`;
     });
 
-    if (!resultImage) throw new Error("No image generated");
+    if (!resultImage) throw new Error("No image generated. The request may have been blocked or filtered.");
     return resultImage;
 
   } catch (error) {

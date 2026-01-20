@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { PromptInput } from '../../../../components/input/prompt.tsx';
+import { PromptInput, ImageRatio, ImageQuality } from '../../../../components/input/prompt.tsx';
 import { EditorNode, ToolMode, Point } from '../../core/types.ts';
-import { ToolExecutionContext } from '../../tools/types.ts';
+import { ToolExecutionContext } from '../../types.ts';
 import { GenerateTool } from '../../tools/generate/index.ts';
 
 interface DockProps {
@@ -18,7 +18,7 @@ interface DockProps {
 
 /**
  * Dock Component
- * The primary AI prompt entry point. Now fully functional and context-aware.
+ * The primary AI prompt entry point. Positioned with balanced breathing room from the bottom edge.
  */
 const Dock: React.FC<DockProps> = (props) => {
   const [prompt, setPrompt] = useState("");
@@ -29,7 +29,7 @@ const Dock: React.FC<DockProps> = (props) => {
     .filter(n => props.selectedNodeIds.includes(n.id))
     .map(n => n.src);
 
-  const handlePromptSubmit = async (value: string) => {
+  const handlePromptSubmit = async (value: string, config: { ratio: ImageRatio | null; quality: ImageQuality | null }) => {
     if (!value.trim() || isGenerating) return;
 
     // Single line comment: Clear prompt instantly and enter loading state.
@@ -40,7 +40,7 @@ const Dock: React.FC<DockProps> = (props) => {
       const toolContext: ToolExecutionContext = {
         nodes: props.nodes,
         selectedNodeIds: props.selectedNodeIds,
-        lassoPath: [], // Generations don't require paths usually
+        lassoPath: [], 
         brushStrokes: [],
         pushHistory: props.pushHistory,
         setNodes: props.setNodes,
@@ -51,7 +51,7 @@ const Dock: React.FC<DockProps> = (props) => {
         setProcessingNodeId: props.setProcessingNodeId,
       };
 
-      await GenerateTool.execute(toolContext, value);
+      await GenerateTool.execute(toolContext, value, config);
     } catch (error) {
       console.error("Failed to generate image:", error);
     } finally {
@@ -60,7 +60,7 @@ const Dock: React.FC<DockProps> = (props) => {
   };
 
   return (
-    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-full max-w-[460px] px-4 z-50">
+    <div className="absolute bottom-5 left-1/2 -translate-x-1/2 w-full max-w-[460px] px-4 z-50">
       <PromptInput 
         value={prompt}
         onChange={setPrompt}
