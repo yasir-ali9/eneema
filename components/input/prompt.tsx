@@ -100,7 +100,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       
       {/* Context Area */}
       {contextImages.length > 0 && (
-        <div className="flex items-center gap-2 px-2 py-2 overflow-x-auto no-scrollbar border-b border-bd-50 bg-bk-60/30 rounded-t-[10px]">
+        <div className="flex items-center gap-1 px-2 py-2 overflow-x-auto no-scrollbar border-b border-bd-50 bg-bk-60/30 rounded-t-[10px]">
           {contextImages.slice(0, 14).map((src, idx) => (
             <div 
               key={idx} 
