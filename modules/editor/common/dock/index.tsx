@@ -13,6 +13,7 @@ interface DockProps {
   setLassoPath: (path: Point[]) => void;
   setBrushStrokes: (strokes: Point[][]) => void;
   setToolMode: (mode: ToolMode) => void;
+  setProcessingNodeId: (id: string | null) => void; // Single line comment: New prop for shimmer control.
 }
 
 /**
@@ -31,7 +32,10 @@ const Dock: React.FC<DockProps> = (props) => {
   const handlePromptSubmit = async (value: string) => {
     if (!value.trim() || isGenerating) return;
 
+    // Single line comment: Clear prompt instantly and enter loading state.
+    setPrompt(""); 
     setIsGenerating(true);
+    
     try {
       const toolContext: ToolExecutionContext = {
         nodes: props.nodes,
@@ -44,10 +48,10 @@ const Dock: React.FC<DockProps> = (props) => {
         setLassoPath: props.setLassoPath,
         setBrushStrokes: props.setBrushStrokes,
         setToolMode: props.setToolMode,
+        setProcessingNodeId: props.setProcessingNodeId,
       };
 
       await GenerateTool.execute(toolContext, value);
-      setPrompt(""); 
     } catch (error) {
       console.error("Failed to generate image:", error);
     } finally {

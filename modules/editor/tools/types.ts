@@ -18,4 +18,6 @@ export interface ToolExecutionContext {
   setLassoPath: (path: Point[]) => void;
   setBrushStrokes: (strokes: Point[][]) => void;
   setToolMode: (mode: ToolMode) => void;
+  // Single line comment: New property to allow tools to trigger shimmer loading states on specific nodes.
+  setProcessingNodeId: (id: string | null) => void;
 }

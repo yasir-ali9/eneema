@@ -7,10 +7,12 @@ import { GenerateContentResponse } from "@google/genai";
 /**
  * AI Image Generation Service
  * Handles both text-to-image and image-to-image (multi-modal) workflows.
+ * Updated: Supports dynamic aspect ratios for precise layout control.
  */
 export const generateImageWithGemini = async (
   prompt: string,
-  contextImages: string[] = []
+  contextImages: string[] = [],
+  aspectRatio: "1:1" | "3:4" | "4:3" | "9:16" | "16:9" = "1:1"
 ): Promise<string> => {
   try {
     // Single line comment: Map selected images to Gemini parts, capped at 14 for Nano Banana Pro.
@@ -26,7 +28,7 @@ export const generateImageWithGemini = async (
       })
     );
 
-    // Single line comment: Construct the final payload with the user prompt and visual context.
+    // Single line comment: Construct the final payload with the user prompt, visual context, and requested ratio.
     const response: GenerateContentResponse = await withRetry(() =>
       ai.models.generateContent({
         model: GEMINI_IMAGE_MODEL,
@@ -38,7 +40,7 @@ export const generateImageWithGemini = async (
         },
         config: {
           imageConfig: {
-            aspectRatio: "1:1",
+            aspectRatio: aspectRatio,
             imageSize: "1K"
           }
         }

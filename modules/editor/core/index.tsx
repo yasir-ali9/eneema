@@ -73,7 +73,8 @@ const EditorRoot: React.FC = () => {
 
   const toolContext: ToolExecutionContext = {
     nodes, selectedNodeIds, lassoPath, brushStrokes,
-    pushHistory, setNodes, setSelectedNodeIds, setLassoPath, setBrushStrokes, setToolMode
+    pushHistory, setNodes, setSelectedNodeIds, setLassoPath, setBrushStrokes, setToolMode,
+    setProcessingNodeId: setActiveProcessingNodeId
   };
 
   const activeNode = useMemo(() => nodes.find(n => n.id === selectedNodeIds[0]), [nodes, selectedNodeIds]);
@@ -216,6 +217,7 @@ const EditorRoot: React.FC = () => {
         onPushHistory={pushHistory}
         onDeleteNode={handleDeleteNode} onDuplicateNodes={handleDuplicateNodes}
         isProcessing={!!processingTool} processingNodeId={activeProcessingNodeId}
+        setProcessingNodeId={setActiveProcessingNodeId}
         setCanvasRef={(ref) => { canvasRef.current = ref; }}
         showGrid={showGrid}
         viewport={viewport} 

@@ -33,6 +33,22 @@ export const getBoundingBox = (points: Point[], extraStrokes: Point[][] = []) =>
 // Strips base64 headers
 export const cleanBase64 = (data: string) => data.replace(/^data:image\/(png|jpeg|webp);base64,/, '');
 
+/**
+ * Creates a solid color placeholder image data URL.
+ * Used for AI generation loading states.
+ */
+export const createPlaceholderDataUrl = (color: string, width = 400, height = 400): string => {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, width, height);
+  }
+  return canvas.toDataURL('image/png');
+};
+
 // Resizes image for Gemini API
 export const resizeImageForApi = async (base64Str: string, maxDim = 1024): Promise<string> => {
   const img = await loadImage(base64Str);

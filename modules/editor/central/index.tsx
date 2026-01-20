@@ -20,6 +20,7 @@ interface CentralAreaProps {
   onDuplicateNodes: () => void;
   isProcessing: boolean;
   processingNodeId: string | null;
+  setProcessingNodeId: (id: string | null) => void; // Single line comment: New prop for passing down processing state setter.
   setCanvasRef: (ref: HTMLCanvasElement | null) => void;
   showGrid: boolean;
   viewport: Viewport;
@@ -78,6 +79,7 @@ const CentralArea: React.FC<CentralAreaProps> = (props) => {
         setLassoPath={props.setLassoPath}
         setBrushStrokes={props.setBrushStrokes}
         setToolMode={props.setToolMode}
+        setProcessingNodeId={props.setProcessingNodeId}
       />
     </div>
   );
